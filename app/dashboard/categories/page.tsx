@@ -216,7 +216,7 @@ export default function CategoriesPage() {
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <FolderTree size={20} className="text-blue-600" />
+            <Folder size={20} className="text-blue-600" />
             Category List ({filteredCategories.length})
           </h2>
         </div>
@@ -224,7 +224,7 @@ export default function CategoriesPage() {
         {filteredCategories.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <FolderTree size={24} className="text-gray-400" />
+              <Folder size={24} className="text-gray-400" />
             </div>
             <p className="text-gray-500">
               {searchTerm
