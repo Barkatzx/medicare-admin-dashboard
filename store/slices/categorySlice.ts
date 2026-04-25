@@ -31,6 +31,30 @@ export const createCategory = createAsyncThunk(
   },
 );
 
+export const updateCategory = createAsyncThunk(
+  "categories/update",
+  async ({
+    id,
+    name,
+    description,
+  }: {
+    id: string;
+    name: string;
+    description?: string;
+  }) => {
+    const response = await api.updateCategory(id, name, description);
+    return response;
+  },
+);
+
+export const deleteCategory = createAsyncThunk(
+  "categories/delete",
+  async (id: string) => {
+    await api.deleteCategory(id);
+    return id;
+  },
+);
+
 const categorySlice = createSlice({
   name: "categories",
   initialState,
@@ -47,10 +71,35 @@ const categorySlice = createSlice({
       .addCase(fetchCategories.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || "Failed to fetch categories";
+        toast.error("Failed to fetch categories");
       })
       .addCase(createCategory.fulfilled, (state, action) => {
         state.categories.push(action.payload);
         toast.success("Category created successfully");
+      })
+      .addCase(createCategory.rejected, (state, action) => {
+        toast.error(action.error.message || "Failed to create category");
+      })
+      .addCase(updateCategory.fulfilled, (state, action) => {
+        const index = state.categories.findIndex(
+          (c) => c.id === action.payload.id,
+        );
+        if (index !== -1) {
+          state.categories[index] = action.payload;
+        }
+        toast.success("Category updated successfully");
+      })
+      .addCase(updateCategory.rejected, (state, action) => {
+        toast.error(action.error.message || "Failed to update category");
+      })
+      .addCase(deleteCategory.fulfilled, (state, action) => {
+        state.categories = state.categories.filter(
+          (c) => c.id !== action.payload,
+        );
+        toast.success("Category deleted successfully");
+      })
+      .addCase(deleteCategory.rejected, (state, action) => {
+        toast.error(action.error.message || "Failed to delete category");
       });
   },
 });

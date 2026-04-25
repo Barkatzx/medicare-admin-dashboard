@@ -22,11 +22,13 @@ import {
   TrendingUp,
   TrendingDown,
   RefreshCw,
+  Image as ImageIcon,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import toast from "react-hot-toast";
 import ProductForm from "./ProductForm";
 import StockManagementModal from "./StockManagementModal";
+import Image from "next/image";
 
 export default function ProductsPage() {
   const dispatch = useAppDispatch();
@@ -39,6 +41,7 @@ export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [showLowStock, setShowLowStock] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     dispatch(fetchProducts());
@@ -47,7 +50,16 @@ export default function ProductsPage() {
 
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
-      await dispatch(deleteProduct(id));
+      setIsDeleting(true);
+      try {
+        await dispatch(deleteProduct(id)).unwrap();
+        toast.success("Product deleted successfully");
+      } catch (error) {
+        toast.error("Failed to delete product");
+        console.error("Delete error:", error);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
@@ -105,6 +117,14 @@ export default function ProductsPage() {
       color: "purple",
     },
   ];
+
+  // Get product image URL
+  const getProductImage = (product: any) => {
+    if (product.images && product.images.length > 0 && product.images[0].url) {
+      return product.images[0].url;
+    }
+    return null;
+  };
 
   if (loading && products.length === 0) {
     return (
@@ -270,15 +290,35 @@ export default function ProductsPage() {
                     className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                   >
                     <td className="py-3 px-6">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {product.name}
-                        </p>
-                        {product.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                            {product.description.substring(0, 60)}...
-                          </p>
+                      <div className="flex items-center gap-3">
+                        {/* Product Image - Rounded Full */}
+                        {getProductImage(product) ? (
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                            <img
+                              src={getProductImage(product)}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display =
+                                  "none";
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0">
+                            <Package size={16} className="text-blue-600" />
+                          </div>
                         )}
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {product.name}
+                          </p>
+                          {product.description && (
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                              {product.description.substring(0, 60)}...
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-3 px-6">
@@ -350,7 +390,8 @@ export default function ProductsPage() {
                         </button>
                         <button
                           onClick={() => handleDelete(product.id)}
-                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          disabled={isDeleting}
+                          className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete Product"
                         >
                           <Trash2 size={16} />

@@ -417,31 +417,81 @@ class API {
     }
   }
 
+  // Replace the stock management methods in API class with these:
+
   async incrementProductStock(
     productId: string,
     stock: number,
   ): Promise<Product> {
-    return this.request(`/products/${productId}`, {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.getToken()}`,
+      },
       body: JSON.stringify({ operation: "increment", stock }),
     });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to increment stock");
+    }
+
+    // Handle the response structure
+    if (result && result.success === true) {
+      return result.data;
+    }
+    return result;
   }
 
   async decrementProductStock(
     productId: string,
     stock: number,
   ): Promise<Product> {
-    return this.request(`/products/${productId}`, {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.getToken()}`,
+      },
       body: JSON.stringify({ operation: "decrement", stock }),
     });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to decrement stock");
+    }
+
+    // Handle the response structure
+    if (result && result.success === true) {
+      return result.data;
+    }
+    return result;
   }
 
   async updateProductStock(productId: string, stock: number): Promise<Product> {
-    return this.request(`/products/${productId}`, {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.getToken()}`,
+      },
       body: JSON.stringify({ stock }),
     });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message || "Failed to update stock");
+    }
+
+    // Handle the response structure
+    if (result && result.success === true) {
+      return result.data;
+    }
+    return result;
   }
 
   // ==================== CATEGORY MANAGEMENT ====================
@@ -460,6 +510,23 @@ class API {
     return this.request("/categories/", {
       method: "POST",
       body: JSON.stringify({ name, description }),
+    });
+  }
+
+  async updateCategory(
+    id: string,
+    name: string,
+    description?: string,
+  ): Promise<Category> {
+    return this.request(`/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ name, description }),
+    });
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    return this.request(`/categories/${id}`, {
+      method: "DELETE",
     });
   }
 

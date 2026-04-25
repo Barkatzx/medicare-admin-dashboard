@@ -43,6 +43,7 @@ export const deleteProduct = createAsyncThunk(
     return id;
   },
 );
+
 export const updateProductStock = createAsyncThunk(
   "products/updateStock",
   async ({
@@ -65,6 +66,15 @@ export const updateProductStock = createAsyncThunk(
     return response;
   },
 );
+
+export const uploadProductImages = createAsyncThunk(
+  "products/uploadImages",
+  async ({ productId, images }: { productId: string; images: File[] }) => {
+    const response = await api.addProductImages(productId, images);
+    return { productId, images: response };
+  },
+);
+
 const productSlice = createSlice({
   name: "products",
   initialState,
@@ -81,12 +91,25 @@ const productSlice = createSlice({
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || "Failed to fetch products";
+        toast.error("Failed to fetch products");
+      })
+      .addCase(createProduct.pending, (state) => {
+        state.loading = true;
       })
       .addCase(createProduct.fulfilled, (state, action) => {
+        state.loading = false;
         state.products.push(action.payload);
         toast.success("Product created successfully");
       })
+      .addCase(createProduct.rejected, (state, action) => {
+        state.loading = false;
+        toast.error(action.error.message || "Failed to create product");
+      })
+      .addCase(updateProduct.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(updateProduct.fulfilled, (state, action) => {
+        state.loading = false;
         const index = state.products.findIndex(
           (p) => p.id === action.payload.id,
         );
@@ -95,9 +118,65 @@ const productSlice = createSlice({
         }
         toast.success("Product updated successfully");
       })
+      .addCase(updateProduct.rejected, (state, action) => {
+        state.loading = false;
+        toast.error(action.error.message || "Failed to update product");
+      })
+      .addCase(deleteProduct.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(deleteProduct.fulfilled, (state, action) => {
+        state.loading = false;
         state.products = state.products.filter((p) => p.id !== action.payload);
         toast.success("Product deleted successfully");
+      })
+      .addCase(deleteProduct.rejected, (state, action) => {
+        state.loading = false;
+        toast.error(action.error.message || "Failed to delete product");
+      })
+      .addCase(updateProductStock.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(updateProductStock.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.products.findIndex(
+          (p) => p.id === action.payload.id,
+        );
+        if (index !== -1) {
+          state.products[index] = action.payload;
+        }
+        toast.success("Stock updated successfully");
+      })
+      .addCase(updateProductStock.rejected, (state, action) => {
+        state.loading = false;
+        toast.error(action.error.message || "Failed to update stock");
+      })
+      // Add image upload cases INSIDE the builder
+      .addCase(uploadProductImages.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(uploadProductImages.fulfilled, (state, action) => {
+        state.loading = false;
+        // Update the product with new images
+        const index = state.products.findIndex(
+          (p) => p.id === action.payload.productId,
+        );
+        if (index !== -1) {
+          if (!state.products[index].images) {
+            state.products[index].images = [];
+          }
+          // Add new images to existing ones
+          const newImages = action.payload.images;
+          state.products[index].images = [
+            ...(state.products[index].images || []),
+            ...newImages,
+          ];
+        }
+        toast.success("Images uploaded successfully");
+      })
+      .addCase(uploadProductImages.rejected, (state, action) => {
+        state.loading = false;
+        toast.error(action.error.message || "Failed to upload images");
       });
   },
 });
