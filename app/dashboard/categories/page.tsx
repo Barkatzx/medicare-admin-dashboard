@@ -17,18 +17,19 @@ import {
   Edit,
   Trash2,
   Search,
-  Package,
-  AlertCircle,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
   Folder,
+  AlertCircle,
+  Package,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function CategoriesPage() {
   const dispatch = useAppDispatch();
   const { categories, loading } = useAppSelector((state) => state.categories);
+  const { products } = useAppSelector((state) => state.products);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
@@ -42,6 +43,12 @@ export default function CategoriesPage() {
   useEffect(() => {
     dispatch(fetchCategories());
   }, [dispatch]);
+
+  // Get product count for a category
+  const getProductCount = (categoryId: string) => {
+    return products.filter((product) => product.categoryId === categoryId)
+      .length;
+  };
 
   const handleOpenCreateModal = () => {
     setEditingCategory(null);
@@ -102,6 +109,16 @@ export default function CategoriesPage() {
   const handleDelete = async () => {
     if (!deletingCategory) return;
 
+    const productCount = getProductCount(deletingCategory.id);
+    if (productCount > 0) {
+      toast.error(
+        `Cannot delete category with ${productCount} product(s). Please reassign or delete the products first.`,
+      );
+      setIsDeleteModalOpen(false);
+      setDeletingCategory(null);
+      return;
+    }
+
     try {
       await dispatch(deleteCategory(deletingCategory.id)).unwrap();
       toast.success("Category deleted successfully");
@@ -142,8 +159,20 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
+          <p className="text-gray-500 mt-1">Manage your product categories</p>
+        </div>
+        <Button onClick={handleOpenCreateModal} className="gap-2">
+          <Plus size={16} />
+          Add Category
+        </Button>
+      </div>
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -160,26 +189,26 @@ export default function CategoriesPage() {
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Last Updated</p>
-              <p className="text-lg font-bold text-purple-600 mt-1">
-                {new Date().toLocaleDateString()}
+              <p className="text-sm text-gray-500">Total Products</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">
+                {products.length}
               </p>
             </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <RefreshCw size={20} className="text-purple-600" />
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <Package size={20} className="text-green-600" />
             </div>
           </div>
         </div>
         <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <Button onClick={handleOpenCreateModal} className="gap-2">
-                <Plus size={16} />
-                Add Category
-              </Button>
+              <p className="text-sm text-gray-500">Without Description</p>
+              <p className="text-2xl font-bold text-yellow-600 mt-1">
+                {categories.filter((c) => !c.description).length}
+              </p>
             </div>
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <RefreshCw size={20} className="text-purple-600" />
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <AlertCircle size={20} className="text-yellow-600" />
             </div>
           </div>
         </div>
@@ -265,60 +294,71 @@ export default function CategoriesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedCategories.map((category, index) => (
-                    <tr
-                      key={category.id}
-                      className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
-                    >
-                      <td className="py-3 px-6 text-sm text-gray-500">
-                        {(currentPage - 1) * itemsPerPage + index + 1}
-                      </td>
-                      <td className="py-3 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
-                            <FolderTree size={14} className="text-blue-600" />
+                  {paginatedCategories.map((category, index) => {
+                    const productCount = getProductCount(category.id);
+                    return (
+                      <tr
+                        key={category.id}
+                        className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-3 px-6 text-sm text-gray-500">
+                          {(currentPage - 1) * itemsPerPage + index + 1}
+                        </td>
+                        <td className="py-3 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                              <FolderTree size={14} className="text-blue-600" />
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-900">
+                                {category.name}
+                              </span>
+                              {productCount > 0 && (
+                                <span className="ml-2 text-xs text-gray-500">
+                                  ({productCount}{" "}
+                                  {productCount === 1 ? "product" : "products"})
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <span className="font-medium text-gray-900">
-                            {category.name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-6">
-                        {category.description ? (
-                          <p className="text-sm text-gray-600 line-clamp-1">
-                            {category.description}
-                          </p>
-                        ) : (
-                          <span className="text-sm text-gray-400 italic">
-                            No description
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-6">
-                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                          {category.id.slice(-8)}
-                        </code>
-                      </td>
-                      <td className="py-3 px-6">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleOpenEditModal(category)}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit category"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleOpenDeleteModal(category)}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete category"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3 px-6">
+                          {category.description ? (
+                            <p className="text-sm text-gray-600 line-clamp-1">
+                              {category.description}
+                            </p>
+                          ) : (
+                            <span className="text-sm text-gray-400 italic">
+                              No description
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-6">
+                          <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                            {category.id.slice(-8)}
+                          </code>
+                        </td>
+                        <td className="py-3 px-6">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleOpenEditModal(category)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit category"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleOpenDeleteModal(category)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete category"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -443,14 +483,30 @@ export default function CategoriesPage() {
                 </strong>
                 ?
               </p>
-              <p className="text-xs text-red-600 mt-1">
-                This action cannot be undone. Products in this category will be
-                affected.
-              </p>
+              {deletingCategory && getProductCount(deletingCategory.id) > 0 && (
+                <p className="text-xs text-red-600 mt-1">
+                  ⚠️ This category has {getProductCount(deletingCategory.id)}{" "}
+                  product(s). You cannot delete it until you reassign or delete
+                  these products.
+                </p>
+              )}
+              {(!deletingCategory ||
+                getProductCount(deletingCategory.id) === 0) && (
+                <p className="text-xs text-red-600 mt-1">
+                  This action cannot be undone.
+                </p>
+              )}
             </div>
           </div>
           <div className="flex gap-3 pt-4">
-            <Button variant="danger" onClick={handleDelete} className="flex-1">
+            <Button
+              variant="danger"
+              onClick={handleDelete}
+              className="flex-1"
+              disabled={
+                deletingCategory && getProductCount(deletingCategory.id) > 0
+              }
+            >
               Delete Category
             </Button>
             <Button

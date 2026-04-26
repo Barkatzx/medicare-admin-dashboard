@@ -184,7 +184,7 @@ export default function OrdersPage() {
             <div>
               <p className="text-sm text-gray-500">Total Revenue</p>
               <p className="text-2xl font-bold text-green-600 mt-1">
-                ${totalRevenue.toLocaleString()}
+                {totalRevenue.toLocaleString()} ৳
               </p>
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -330,7 +330,7 @@ export default function OrdersPage() {
                     </td>
                     <td className="py-3 px-6">
                       <span className="font-bold text-gray-900">
-                        ${parseFloat(order.totalAmount).toLocaleString()}
+                        {parseFloat(order.totalAmount).toLocaleString()} ৳
                       </span>
                     </td>
                     <td className="py-3 px-6">
@@ -596,16 +596,16 @@ export default function OrdersPage() {
                           Quantity: {item.quantity}
                         </p>
                         <p className="text-xs text-gray-500">
-                          @ ${parseFloat(item.price).toLocaleString()}
+                          @ {parseFloat(item.price).toLocaleString()} ৳
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-gray-900">
-                        $
                         {(
                           parseFloat(item.price) * item.quantity
-                        ).toLocaleString()}
+                        ).toLocaleString()}{" "}
+                        ৳
                       </p>
                       <p className="text-xs text-gray-500">Total for item</p>
                     </div>
@@ -618,7 +618,7 @@ export default function OrdersPage() {
                     Total Amount
                   </span>
                   <span className="font-bold text-gray-900 text-lg">
-                    ${parseFloat(selectedOrder.totalAmount).toLocaleString()}
+                    {parseFloat(selectedOrder.totalAmount).toLocaleString()} ৳
                   </span>
                 </div>
               </div>

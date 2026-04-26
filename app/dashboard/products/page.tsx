@@ -22,13 +22,11 @@ import {
   TrendingUp,
   TrendingDown,
   RefreshCw,
-  Image as ImageIcon,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import toast from "react-hot-toast";
 import ProductForm from "./ProductForm";
 import StockManagementModal from "./StockManagementModal";
-import Image from "next/image";
 
 export default function ProductsPage() {
   const dispatch = useAppDispatch();
@@ -58,10 +56,7 @@ export default function ProductsPage() {
     setIsDeleting(true);
     try {
       await dispatch(deleteProduct(productToDelete)).unwrap();
-      // The toast is also handled in productSlice, so this is optional
-      // but if the unwrap succeeds, it's already shown via slice.
     } catch (error: any) {
-      // Show the actual backend error message or fallback
       toast.error(error?.message || "Failed to delete product");
       console.error("Delete error:", error);
     } finally {
@@ -95,7 +90,13 @@ export default function ProductsPage() {
   });
 
   const lowStockCount = products.filter((p) => p.stock <= 20).length;
-  const totalValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
+
+  // Calculate total value correctly: sum of (price * stock) for all products
+  const totalValue = products.reduce((sum, p) => {
+    // Use discounted price if available, otherwise use regular price
+    const productPrice = p.discountedPrice || p.price;
+    return sum + productPrice * p.stock;
+  }, 0);
 
   // Stats
   const stats = [
@@ -113,7 +114,7 @@ export default function ProductsPage() {
     },
     {
       label: "Total Value",
-      value: `$${totalValue.toLocaleString()}`,
+      value: `৳${totalValue.toLocaleString()}`,
       icon: TrendingUp,
       color: "green",
     },
@@ -335,14 +336,14 @@ export default function ProductsPage() {
                     </td>
                     <td className="py-3 px-6">
                       <span className="font-medium text-gray-900">
-                        ${product.price}
+                        ৳{product.price.toLocaleString()}
                       </span>
                     </td>
                     <td className="py-3 px-6">
                       {product.discountedPrice ? (
                         <div>
                           <span className="text-green-600 font-medium">
-                            ${product.discountedPrice}
+                            ৳{product.discountedPrice.toLocaleString()}
                           </span>
                           {product.discountPercent > 0 && (
                             <span className="text-xs text-gray-500 ml-1">
@@ -397,7 +398,9 @@ export default function ProductsPage() {
                         </button>
                         <button
                           onClick={() => confirmDelete(product.id)}
-                          disabled={isDeleting && productToDelete === product.id}
+                          disabled={
+                            isDeleting && productToDelete === product.id
+                          }
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete Product"
                         >
@@ -451,7 +454,7 @@ export default function ProductsPage() {
           </p>
           <div className="flex justify-end gap-3 pt-4">
             <Button
-              variant="outline"
+              variant="secondary"
               onClick={() => setProductToDelete(null)}
               disabled={isDeleting}
             >

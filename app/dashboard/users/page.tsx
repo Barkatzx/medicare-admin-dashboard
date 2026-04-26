@@ -78,7 +78,7 @@ export default function UsersPage() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Users</p>
@@ -91,7 +91,7 @@ export default function UsersPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Pending Approvals</p>
@@ -107,7 +107,7 @@ export default function UsersPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Active Customers</p>

@@ -1,4 +1,4 @@
-// src/components/ui/Modal.tsx - Updated with Portal
+// src/components/ui/Modal.tsx - Updated with Portal and transparent background
 "use client";
 
 import { ReactNode, useEffect, useState } from "react";
@@ -40,8 +40,9 @@ export default function Modal({
 
   return createPortal(
     <div className="fixed inset-0 z-50">
+      {/* Transparent backdrop - removed bg-opacity */}
       <div
-        className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+        className="fixed inset-0 backdrop-blur transition-opacity"
         onClick={onClose}
       />
       <div className="fixed inset-0 z-10 overflow-y-auto">
@@ -54,7 +55,7 @@ export default function Modal({
                 </h3>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-500"
+                  className="text-gray-400 hover:text-gray-500 transition-colors"
                 >
                   <X size={20} />
                 </button>
