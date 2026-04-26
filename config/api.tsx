@@ -44,6 +44,19 @@ export interface Category {
   description: string | null;
 }
 
+export interface ShippingAddress {
+  id: string;
+  userId: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  isDefault: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Order {
   id: string;
   userId: string;
@@ -58,6 +71,7 @@ export interface Order {
   };
   items: OrderItem[];
   payment: Payment;
+  shippingAddress?: ShippingAddress;
 }
 
 export interface OrderItem {
@@ -187,7 +201,12 @@ class API {
     return this.user;
   }
 
-  private async request(endpoint: string, options: RequestInit = {}) {
+  private async request(
+    endpoint: string,
+    options: RequestInit = {},
+    retries = 3,
+    backoff = 300,
+  ): Promise<any> {
     const token = this.getToken();
 
     const headers: HeadersInit = {
@@ -211,10 +230,33 @@ class API {
       }
 
       if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "API request failed" }));
-        throw new Error(error.message || "API request failed");
+        // Retry on 5xx server errors
+        if (response.status >= 500 && retries > 0) {
+          console.warn(
+            `API ${response.status} for ${endpoint}. Retrying in ${backoff}ms...`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, backoff));
+          return this.request(endpoint, options, retries - 1, backoff * 2);
+        }
+
+        const text = await response.text();
+        console.error(
+          `API Error details: ${response.status} ${response.statusText}`,
+          text,
+        );
+        let error;
+        try {
+          error = JSON.parse(text);
+        } catch (e) {
+          error = {
+            message: `API request failed with status ${response.status}`,
+          };
+        }
+        throw new Error(
+          error.message ||
+            error.error ||
+            `API request failed with status ${response.status}`,
+        );
       }
 
       const result = await response.json();
@@ -226,6 +268,15 @@ class API {
 
       return result;
     } catch (error) {
+      // Retry on network errors (fetch throws TypeError)
+      if (retries > 0 && error instanceof TypeError) {
+        console.warn(
+          `Network error for ${endpoint}. Retrying in ${backoff}ms...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, backoff));
+        return this.request(endpoint, options, retries - 1, backoff * 2);
+      }
+
       console.error(`API Error (${endpoint}):`, error);
       throw error;
     }
@@ -306,59 +357,26 @@ class API {
   }
 
   async createProduct(productData: Partial<Product>): Promise<Product> {
-    const response = await fetch(`${API_BASE_URL}/products/`, {
+    return this.request("/products/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getToken()}`,
-      },
       body: JSON.stringify(productData),
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || "Failed to create product");
-    }
-
-    return result.data;
   }
 
   async updateProduct(
     productId: string,
     productData: Partial<Product>,
   ): Promise<Product> {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+    return this.request(`/products/${productId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getToken()}`,
-      },
       body: JSON.stringify(productData),
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || "Failed to update product");
-    }
-
-    return result.data;
   }
 
   async deleteProduct(productId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+    await this.request(`/products/${productId}/`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${this.getToken()}`,
-      },
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || "Failed to delete product");
-    }
   }
 
   async getLowStockProducts(threshold: number = 10): Promise<Product[]> {
@@ -423,75 +441,27 @@ class API {
     productId: string,
     stock: number,
   ): Promise<Product> {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+    return this.request(`/products/${productId}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getToken()}`,
-      },
       body: JSON.stringify({ operation: "increment", stock }),
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || "Failed to increment stock");
-    }
-
-    // Handle the response structure
-    if (result && result.success === true) {
-      return result.data;
-    }
-    return result;
   }
 
   async decrementProductStock(
     productId: string,
     stock: number,
   ): Promise<Product> {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+    return this.request(`/products/${productId}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getToken()}`,
-      },
       body: JSON.stringify({ operation: "decrement", stock }),
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || "Failed to decrement stock");
-    }
-
-    // Handle the response structure
-    if (result && result.success === true) {
-      return result.data;
-    }
-    return result;
   }
 
   async updateProductStock(productId: string, stock: number): Promise<Product> {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+    return this.request(`/products/${productId}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.getToken()}`,
-      },
       body: JSON.stringify({ stock }),
     });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.message || "Failed to update stock");
-    }
-
-    // Handle the response structure
-    if (result && result.success === true) {
-      return result.data;
-    }
-    return result;
   }
 
   // ==================== CATEGORY MANAGEMENT ====================
@@ -563,10 +533,14 @@ class API {
     });
   }
 
-  async confirmPayment(orderId: string): Promise<Payment> {
-    return this.request(`/orders/${orderId}/payment/confirm`, {
+  async confirmPayment(
+    orderId: string,
+  ): Promise<{ orderId: string; payment: Payment }> {
+    const response = await this.request(`/orders/${orderId}/payment/confirm`, {
       method: "PUT",
     });
+    // Return an object that includes the orderId
+    return { orderId, payment: response };
   }
 
   // ==================== SALES & REPORTS ====================

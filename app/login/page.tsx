@@ -14,12 +14,16 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { loading, isAuthenticated } = useAppSelector((state) => state.auth);
 
-  // ✅ Redirect after mount (safe)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated) {
       router.push("/dashboard");
@@ -36,7 +40,6 @@ export default function LoginPage() {
 
     try {
       const result = await dispatch(login({ email, password })).unwrap();
-
       if (result.user.role === "admin") {
         router.push("/dashboard");
       }
@@ -45,9 +48,16 @@ export default function LoginPage() {
     }
   };
 
+  // ✅ Render nothing (or a neutral shell) until client is ready
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4" />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8 bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-8 bg-white rounded-2xl p-8">
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
@@ -109,7 +119,6 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   required
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
@@ -122,7 +131,7 @@ export default function LoginPage() {
           </div>
 
           {/* Submit */}
-          <Button type="submit" loading={loading} className="w-full">
+          <Button type="submit" loading={loading} className="w-full py-4">
             {loading ? (
               <div className="flex items-center justify-center gap-2">
                 <Spinner size="sm" />

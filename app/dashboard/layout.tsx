@@ -1,6 +1,7 @@
 // src/app/dashboard/layout.tsx
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAppSelector } from "@/store/hooks";
 import Sidebar from "@/components/layout/Sidebar";
 import Header from "@/components/layout/Header";
@@ -12,10 +13,26 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [mounted, setMounted] = useState(false);
   const { isInitialized } = useAppSelector((state) => state.auth);
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // ✅ Server + first client render: render children as-is, no spinner
+  // This ensures SSR output matches between server and client
+  if (!mounted) {
+    return <>{children}</>;
+  }
+
+  // ✅ After hydration: safe to read Redux state
   if (!isInitialized) {
-    return <Spinner />;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Spinner />
+      </div>
+    );
   }
 
   return (

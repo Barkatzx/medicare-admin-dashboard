@@ -42,24 +42,31 @@ export default function ProductsPage() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [showLowStock, setShowLowStock] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(fetchProducts());
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this product?")) {
-      setIsDeleting(true);
-      try {
-        await dispatch(deleteProduct(id)).unwrap();
-        toast.success("Product deleted successfully");
-      } catch (error) {
-        toast.error("Failed to delete product");
-        console.error("Delete error:", error);
-      } finally {
-        setIsDeleting(false);
-      }
+  const confirmDelete = (id: string) => {
+    setProductToDelete(id);
+  };
+
+  const handleDelete = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
+    try {
+      await dispatch(deleteProduct(productToDelete)).unwrap();
+      // The toast is also handled in productSlice, so this is optional
+      // but if the unwrap succeeds, it's already shown via slice.
+    } catch (error: any) {
+      // Show the actual backend error message or fallback
+      toast.error(error?.message || "Failed to delete product");
+      console.error("Delete error:", error);
+    } finally {
+      setIsDeleting(false);
+      setProductToDelete(null);
     }
   };
 
@@ -389,8 +396,8 @@ export default function ProductsPage() {
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete(product.id)}
-                          disabled={isDeleting}
+                          onClick={() => confirmDelete(product.id)}
+                          disabled={isDeleting && productToDelete === product.id}
                           className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Delete Product"
                         >
@@ -431,6 +438,35 @@ export default function ProductsPage() {
           dispatch(fetchProducts());
         }}
       />
+
+      <Modal
+        isOpen={!!productToDelete}
+        onClose={() => !isDeleting && setProductToDelete(null)}
+        title="Confirm Deletion"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Are you sure you want to delete this product? This action cannot be
+            undone.
+          </p>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setProductToDelete(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDelete}
+              loading={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
