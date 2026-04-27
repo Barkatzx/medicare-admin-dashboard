@@ -1,7 +1,6 @@
-// src/app/dashboard/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchProducts } from "@/store/slices/productSlice";
 import { fetchUsers } from "@/store/slices/userSlice";
@@ -9,8 +8,22 @@ import { fetchOrders } from "@/store/slices/orderSlice";
 import { api, DashboardData } from "@/config/api";
 import Card from "@/components/ui/Card";
 import DashboardStats from "./DashboardStats";
-import SalesChart from "@/app/dashboard/charts/SalesChart";
-import TopProductsChart from "@/app/dashboard/charts/TopProductsChart";
+import dynamic from "next/dynamic";
+
+const SalesChart = dynamic(() => import("@/app/dashboard/charts/SalesChart"), {
+  loading: () => <div className="h-80 bg-gray-100 rounded-xl animate-pulse" />,
+  ssr: false,
+});
+
+const TopProductsChart = dynamic(
+  () => import("@/app/dashboard/charts/TopProductsChart"),
+  {
+    loading: () => (
+      <div className="h-80 bg-gray-100 rounded-xl animate-pulse" />
+    ),
+    ssr: false,
+  },
+);
 
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
@@ -21,34 +34,52 @@ export default function DashboardPage() {
     null,
   );
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    try {
       setLoading(true);
-      try {
-        const [dashboard, productsData, usersData, ordersData] =
-          await Promise.all([
-            api.getDashboardData(),
-            dispatch(fetchProducts()).unwrap(),
-            dispatch(fetchUsers()).unwrap(),
-            dispatch(fetchOrders({ page: 1, limit: 10 })).unwrap(),
-          ]);
-        setDashboardData(dashboard);
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+      setError(null);
+
+      // Fetch critical data first (dashboard stats)
+      const dashboard = await api.getDashboardData();
+      setDashboardData(dashboard);
+
+      // Fetch secondary data in background
+      Promise.all([
+        dispatch(fetchProducts()).unwrap(),
+        dispatch(fetchUsers()).unwrap(),
+        dispatch(fetchOrders({ page: 1, limit: 10 })).unwrap(),
+      ]).catch((err) => console.error("Background fetch error:", err));
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error);
+      setError("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
   }, [dispatch]);
 
-  const growthData = {
-    daily: dashboardData?.growth?.daily || 0,
-    weekly: dashboardData?.growth?.weekly || 0,
-    monthly: dashboardData?.growth?.monthly || 0,
-    yearly: dashboardData?.growth?.yearly || 0,
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">⚠️ {error}</div>
+          <button
+            onClick={fetchData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const displayOrders = (dashboardData?.recent_orders || orders).slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -76,7 +107,12 @@ export default function DashboardPage() {
             customers: 0,
             products_sold: 0,
           },
-          growth: growthData,
+          growth: {
+            daily: dashboardData?.growth?.daily || 0,
+            weekly: dashboardData?.growth?.weekly || 0,
+            monthly: dashboardData?.growth?.monthly || 0,
+            yearly: dashboardData?.growth?.yearly || 0,
+          },
         }}
         loading={loading}
       />
@@ -92,30 +128,33 @@ export default function DashboardPage() {
 
       <Card title="Recent Orders">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
-                  Order ID
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
-                  Customer
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
-                  Amount
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
-                  Status
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
-                  Date
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {(dashboardData?.recent_orders || orders)
-                .slice(0, 5)
-                .map((order) => (
+          {displayOrders.length === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              No recent orders
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    Order ID
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    Customer
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    Amount
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    Status
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">
+                    Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayOrders.map((order) => (
                   <tr
                     key={order.id}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
@@ -137,7 +176,11 @@ export default function DashboardPage() {
                             ? "bg-green-100 text-green-700"
                             : order.status === "pending"
                               ? "bg-yellow-100 text-yellow-700"
-                              : "bg-gray-100 text-gray-700"
+                              : order.status === "processing"
+                                ? "bg-blue-100 text-blue-700"
+                                : order.status === "cancelled"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-gray-100 text-gray-700"
                         }`}
                       >
                         {order.status}
@@ -148,8 +191,9 @@ export default function DashboardPage() {
                     </td>
                   </tr>
                 ))}
-            </tbody>
-          </table>
+              </tbody>
+            </table>
+          )}
         </div>
       </Card>
     </div>

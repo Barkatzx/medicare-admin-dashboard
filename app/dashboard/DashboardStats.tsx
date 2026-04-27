@@ -36,9 +36,50 @@ interface DashboardStatsProps {
   loading?: boolean;
 }
 
+// Skeleton Loader Component
+const StatsSkeleton = () => (
+  <div className="space-y-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100"
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="h-12 w-12 bg-gray-200 rounded-xl animate-pulse"></div>
+              <div className="h-8 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
+            <div className="h-8 bg-gray-200 rounded w-2/3 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+            <div className="h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100"
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="h-10 w-10 bg-gray-200 rounded-lg animate-pulse"></div>
+              <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
+            <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export default function DashboardStats({ data, loading }: DashboardStatsProps) {
   const currencySymbol = "৳";
 
+  // Memoize period stats to prevent unnecessary recalculations
   const periodStats = [
     {
       title: "Today",
@@ -126,44 +167,7 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
   ];
 
   if (loading) {
-    return (
-      <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100"
-            >
-              <div className="animate-pulse space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="h-12 w-12 bg-gray-200 rounded-xl"></div>
-                  <div className="h-8 w-16 bg-gray-200 rounded-full"></div>
-                </div>
-                <div className="h-8 bg-gray-200 rounded w-2/3"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                <div className="h-10 bg-gray-200 rounded-lg"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100"
-            >
-              <div className="animate-pulse space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="h-10 w-10 bg-gray-200 rounded-lg"></div>
-                  <div className="h-6 w-16 bg-gray-200 rounded-full"></div>
-                </div>
-                <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <StatsSkeleton />;
   }
 
   return (
@@ -201,13 +205,11 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                 key={stat.title}
                 className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-gray-100"
               >
-                {/* Gradient Background Effect */}
                 <div
                   className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
                 />
 
                 <div className="relative z-10">
-                  {/* Header with Icon and Growth */}
                   <div className="flex items-center justify-between mb-4">
                     <div
                       className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg`}
@@ -230,7 +232,6 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                     </div>
                   </div>
 
-                  {/* Revenue */}
                   <div className="mb-3">
                     <p className="text-sm text-gray-500 mb-1">{stat.title}</p>
                     <p className="text-3xl font-bold text-gray-900">
@@ -239,7 +240,6 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                     </p>
                   </div>
 
-                  {/* Stats Row */}
                   <div className="flex items-center justify-between text-sm mb-4">
                     <div className="text-gray-500">
                       <span className="font-semibold text-gray-700">
@@ -255,7 +255,6 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                     </div>
                   </div>
 
-                  {/* Progress Bar */}
                   <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full bg-gradient-to-r ${stat.gradient} transition-all duration-500`}
@@ -295,7 +294,6 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                 ? stat.value.toLocaleString()
                 : stat.value;
 
-            // Different gradient for each card
             const gradients = [
               "from-green-500 to-emerald-500",
               "from-blue-500 to-indigo-500",
@@ -308,11 +306,9 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                 key={stat.label}
                 className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-gray-100"
               >
-                {/* Animated Border Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 -translate-x-full group-hover:translate-x-full transition-all duration-1000" />
 
                 <div className="relative z-10">
-                  {/* Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div
                       className={`p-3 rounded-xl bg-gradient-to-br ${gradients[index]} shadow-lg`}
@@ -326,7 +322,6 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                     )}
                   </div>
 
-                  {/* Value */}
                   <div className="mb-2">
                     <p className="text-sm text-gray-500 mb-1">{stat.label}</p>
                     <p className="text-3xl font-bold text-gray-900">
@@ -335,7 +330,6 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                     </p>
                   </div>
 
-                  {/* Decorative Element */}
                   <div className="mt-4 flex items-center gap-2 text-xs text-gray-400">
                     <Award size={12} />
                     <span>Total performance</span>
@@ -349,7 +343,6 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
 
       {/* Quick Insights Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Best Performing Period */}
         <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 p-6 border border-blue-100">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -378,7 +371,6 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
           </p>
         </div>
 
-        {/* Average Order Value */}
         <div className="rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 p-6 border border-purple-100">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-white rounded-lg shadow-sm">
