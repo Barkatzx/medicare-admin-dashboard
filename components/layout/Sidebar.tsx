@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
+import { api } from "@/config/api";
 
 const menuItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -39,11 +40,10 @@ export default function Sidebar() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
-
-  // ✅ Deterministic initial state (same on server + first client render)
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // ✅ After mount: read persisted state
+  // Load collapsed state from localStorage after mount
   useEffect(() => {
     try {
       const saved = localStorage.getItem("sidebarCollapsed");
@@ -51,7 +51,39 @@ export default function Sidebar() {
     } catch {}
   }, []);
 
-  // ✅ Persist on change (client-only)
+  // Fetch unread notifications count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await api.getNotifications(true);
+        const count = data?.unreadCount || data?.notifications?.length || 0;
+        setUnreadCount(count);
+      } catch (error) {
+        console.error("Failed to fetch unread count:", error);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Set up polling every 30 seconds to check for new notifications
+    const interval = setInterval(fetchUnreadCount, 30000);
+
+    // Also set up event listener for when notifications are marked as read
+    const handleNotificationUpdate = () => {
+      fetchUnreadCount();
+    };
+    window.addEventListener("notificationsUpdated", handleNotificationUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(
+        "notificationsUpdated",
+        handleNotificationUpdate,
+      );
+    };
+  }, []);
+
+  // Persist on change (client-only)
   useEffect(() => {
     try {
       localStorage.setItem("sidebarCollapsed", JSON.stringify(isCollapsed));
@@ -71,7 +103,7 @@ export default function Sidebar() {
     <>
       {/* Sidebar */}
       <aside
-        className={`fixed left-2.5 top-2.5 bottom-2.5 ${sidebarWidth} bg-white rounded-2xl flex flex-col transition-all duration-300 z-30 border border-gray-100`}
+        className={`fixed left-2.5 top-2.5 bottom-2.5 ${sidebarWidth} bg-white rounded-2xl flex flex-col transition-all duration-300 z-30 border border-gray-100 shadow-sm`}
       >
         {/* Toggle Button */}
         <div className="flex justify-end p-3">
@@ -98,7 +130,7 @@ export default function Sidebar() {
             }`}
           >
             <div className="relative">
-              <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
                 <span className="text-white font-semibold text-sm">
                   {user?.name?.charAt(0) || "A"}
                 </span>
@@ -175,7 +207,7 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {/* Notifications */}
+            {/* Notifications Section with Real-time Badge */}
             <div>
               {!isCollapsed && (
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
@@ -184,37 +216,46 @@ export default function Sidebar() {
               )}
 
               <div className="space-y-1">
-                <button
+                <Link
+                  href="/dashboard/notifications"
                   className={`
                     w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                    text-gray-600 hover:bg-gray-50 hover:text-blue-600
                     transition-all duration-200 relative
+                    ${
+                      pathname === "/dashboard/notifications"
+                        ? "bg-blue-50 text-blue-600"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
+                    }
                     ${isCollapsed ? "justify-center" : ""}
                   `}
                 >
-                  <Bell size={20} className="text-gray-500" />
+                  <Bell
+                    size={20}
+                    className={`flex-shrink-0 ${
+                      pathname === "/dashboard/notifications"
+                        ? "text-blue-600"
+                        : "text-gray-500 group-hover:text-blue-600"
+                    }`}
+                  />
 
                   {!isCollapsed && (
-                    <Link
-                      href="/dashboard/notifications"
-                      className="text-sm font-medium"
-                    >
-                      <span className="text-sm">Notifications</span>
-                    </Link>
+                    <span className="text-sm font-medium">Notifications</span>
                   )}
 
-                  {!isCollapsed && (
-                    <span className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                      3
+                  {/* Unread Badge - Expanded State */}
+                  {!isCollapsed && unreadCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                      {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
 
-                  {isCollapsed && (
-                    <span className="absolute top-0 right-1 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                      3
+                  {/* Unread Badge - Collapsed State */}
+                  {isCollapsed && unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                      {unreadCount > 9 ? "9+" : unreadCount}
                     </span>
                   )}
-                </button>
+                </Link>
               </div>
             </div>
           </div>

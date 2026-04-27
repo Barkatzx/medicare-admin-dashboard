@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api } from "@/config/api";
+import { api, User } from "@/config/api";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import {
@@ -25,14 +25,6 @@ interface Notification {
   type: string;
   isRead: boolean;
   createdAt: string;
-}
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  isApproved?: boolean;
 }
 
 export default function NotificationsPage() {
