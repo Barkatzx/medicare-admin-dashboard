@@ -442,6 +442,42 @@ class API {
       method: "PUT",
     });
   }
+
+  async sendNotification(payload: {
+    userId: string;
+    title: string;
+    message: string;
+    type: string;
+  }): Promise<any> {
+    const adminToken = localStorage.getItem("adminToken");
+    const response = await this.request("/users/notifications/send", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+        ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+      },
+    });
+    return response?.data ?? response;
+  }
+
+  async sendBulkNotifications(payload: {
+    userIds: string[];
+    title: string;
+    message: string;
+    type: string;
+  }): Promise<any> {
+    const adminToken = localStorage.getItem("adminToken");
+    const response = await this.request("/users/notifications/send-bulk", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: {
+        "Content-Type": "application/json",
+        ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}),
+      },
+    });
+    return response?.data ?? response;
+  }
   // ==================== PRODUCT MANAGEMENT ====================
   async getAllProducts(): Promise<Product[]> {
     const result = await this.request("/products/");

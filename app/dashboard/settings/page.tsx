@@ -171,9 +171,10 @@ export default function SettingsPage() {
   const fetchNotifications = async () => {
     try {
       const data = await api.getNotifications();
+      // data is now { notifications, unreadCount, pagination }
       setNotifications(data?.notifications || []);
       setUnreadCount(data?.unreadCount || 0);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch notifications:", error);
       setNotifications([]);
       setUnreadCount(0);
@@ -354,18 +355,6 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Modern Header with Gradient */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-blue-800 p-8 text-white">
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-white/10"></div>
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-white/5"></div>
-        <div className="relative">
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="mt-2 text-blue-100">
-            Manage your account settings and preferences
-          </p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content - Left Column */}
         <div className="lg:col-span-2 space-y-6">

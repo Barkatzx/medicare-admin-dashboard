@@ -195,7 +195,12 @@ export default function Sidebar() {
                   <Bell size={20} className="text-gray-500" />
 
                   {!isCollapsed && (
-                    <span className="text-sm">Notifications</span>
+                    <Link
+                      href="/dashboard/notifications"
+                      className="text-sm font-medium"
+                    >
+                      <span className="text-sm">Notifications</span>
+                    </Link>
                   )}
 
                   {!isCollapsed && (
