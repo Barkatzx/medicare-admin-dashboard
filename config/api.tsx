@@ -340,6 +340,108 @@ class API {
     return this.request(`/users/approve/${userId}`, { method: "PUT" });
   }
 
+  // ==================== USER ADDRESS NOTIFICATION MANAGEMENT ====================
+
+  async getProfile(): Promise<any> {
+    const response = await this.request("/users/profile");
+    return response?.data ?? response;
+  }
+
+  async getAddresses(): Promise<any[]> {
+    const response = await this.request("/users/addresses");
+    const data = response?.data ?? response;
+    return Array.isArray(data) ? data : [];
+  }
+
+  async getNotifications(unreadOnly: boolean = false): Promise<any> {
+    const url = unreadOnly
+      ? "/users/notifications?unreadOnly=true"
+      : "/users/notifications";
+    const response = await this.request(url);
+    // response.data = { notifications, unreadCount, pagination }
+    return response?.data ?? response;
+  }
+
+  async updateProfile(profileData: {
+    name: string;
+    pharmacy_name: string;
+    phone_number: string;
+  }): Promise<any> {
+    const response = await this.request("/users/profile", {
+      method: "PUT",
+      body: JSON.stringify(profileData),
+    });
+    return response?.data ?? response;
+  }
+
+  async changePassword(passwordData: {
+    oldPassword: string;
+    newPassword: string;
+  }): Promise<void> {
+    return this.request("/users/change-password", {
+      method: "POST",
+      body: JSON.stringify(passwordData),
+    });
+  }
+
+  async createAddress(addressData: {
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    isDefault: boolean;
+  }): Promise<any> {
+    const response = await this.request("/users/addresses", {
+      method: "POST",
+      body: JSON.stringify(addressData),
+    });
+    return response?.data ?? response;
+  }
+
+  async updateAddress(
+    addressId: string,
+    addressData: Partial<{
+      street: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      country: string;
+      isDefault: boolean;
+    }>,
+  ): Promise<any> {
+    const response = await this.request(`/users/addresses/${addressId}`, {
+      method: "PUT",
+      body: JSON.stringify(addressData),
+    });
+    return response?.data ?? response;
+  }
+
+  async deleteAddress(addressId: string): Promise<void> {
+    return this.request(`/users/addresses/${addressId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async setDefaultAddress(addressId: string): Promise<any> {
+    const response = await this.request(`/users/addresses/${addressId}`, {
+      method: "PUT",
+      body: JSON.stringify({ isDefault: true }),
+    });
+    return response?.data ?? response;
+  }
+
+  async markNotificationAsRead(notificationId: string): Promise<void> {
+    return this.request(`/users/notifications/${notificationId}`, {
+      method: "PUT",
+    });
+  }
+
+  async markAllNotificationsAsRead(): Promise<void> {
+    return this.request("/users/notifications/read-all", {
+      method: "PUT",
+    });
+  }
   // ==================== PRODUCT MANAGEMENT ====================
   async getAllProducts(): Promise<Product[]> {
     const result = await this.request("/products/");
