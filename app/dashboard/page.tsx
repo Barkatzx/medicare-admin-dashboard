@@ -1,3 +1,4 @@
+// src/app/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,7 +8,7 @@ import { fetchUsers } from "@/store/slices/userSlice";
 import { fetchOrders } from "@/store/slices/orderSlice";
 import { api, DashboardData } from "@/config/api";
 import Card from "@/components/ui/Card";
-import DashboardStats from "@/app/dashboard/DashboardStats";
+import DashboardStats from "./DashboardStats";
 import SalesChart from "@/app/dashboard/charts/SalesChart";
 import TopProductsChart from "@/app/dashboard/charts/TopProductsChart";
 
@@ -25,7 +26,6 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch all data in parallel
         const [dashboard, productsData, usersData, ordersData] =
           await Promise.all([
             api.getDashboardData(),
@@ -33,7 +33,6 @@ export default function DashboardPage() {
             dispatch(fetchUsers()).unwrap(),
             dispatch(fetchOrders({ page: 1, limit: 10 })).unwrap(),
           ]);
-
         setDashboardData(dashboard);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
@@ -44,11 +43,29 @@ export default function DashboardPage() {
     fetchData();
   }, [dispatch]);
 
+  const growthData = {
+    daily: dashboardData?.growth?.daily || 0,
+    weekly: dashboardData?.growth?.weekly || 0,
+    monthly: dashboardData?.growth?.monthly || 0,
+    yearly: dashboardData?.growth?.yearly || 0,
+  };
+
   return (
     <div className="space-y-6">
       <DashboardStats
         data={{
+          today: dashboardData?.today || { sales: 0, orders: 0, items: 0 },
+          this_week: dashboardData?.this_week || {
+            sales: 0,
+            orders: 0,
+            items: 0,
+          },
           this_month: dashboardData?.this_month || {
+            sales: 0,
+            orders: 0,
+            items: 0,
+          },
+          this_year: dashboardData?.this_year || {
             sales: 0,
             orders: 0,
             items: 0,
@@ -59,12 +76,7 @@ export default function DashboardPage() {
             customers: 0,
             products_sold: 0,
           },
-          growth: dashboardData?.growth || {
-            daily: 0,
-            weekly: 0,
-            monthly: 0,
-            yearly: 0,
-          },
+          growth: growthData,
         }}
         loading={loading}
       />
@@ -108,20 +120,20 @@ export default function DashboardPage() {
                     key={order.id}
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                   >
-                    <td className="py-3 px-4 text-sm text-gray-900">
+                    <td className="py-3 px-4 text-sm font-mono text-gray-900">
                       #{order.id.slice(-8)}
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">
                       {order.user?.name || "N/A"}
                     </td>
                     <td className="py-3 px-4 text-sm font-medium text-gray-900">
-                      ${parseFloat(order.totalAmount).toLocaleString()}
+                      ৳{parseFloat(order.totalAmount).toLocaleString()}
                     </td>
                     <td className="py-3 px-4">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                           order.status === "completed" ||
-                          order.status === "confirmed"
+                          order.status === "delivered"
                             ? "bg-green-100 text-green-700"
                             : order.status === "pending"
                               ? "bg-yellow-100 text-yellow-700"
