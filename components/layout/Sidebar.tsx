@@ -16,23 +16,64 @@ import {
   Bell,
   Settings,
   HelpCircle,
+  Sparkles,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
 import { api } from "@/config/api";
 
 const menuItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Users", href: "/dashboard/users", icon: Users },
-  { name: "Products", href: "/dashboard/products", icon: Package },
-  { name: "Categories", href: "/dashboard/categories", icon: FolderTree },
-  { name: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
-  { name: "Reports", href: "/dashboard/reports", icon: BarChart3 },
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    description: "Overview & analytics",
+  },
+  {
+    name: "Users",
+    href: "/dashboard/users",
+    icon: Users,
+    description: "Manage customers",
+  },
+  {
+    name: "Products",
+    href: "/dashboard/products",
+    icon: Package,
+    description: "Inventory management",
+  },
+  {
+    name: "Categories",
+    href: "/dashboard/categories",
+    icon: FolderTree,
+    description: "Organize products",
+  },
+  {
+    name: "Orders",
+    href: "/dashboard/orders",
+    icon: ShoppingCart,
+    description: "Track shipments",
+  },
+  {
+    name: "Reports",
+    href: "/dashboard/reports",
+    icon: BarChart3,
+    description: "Sales analytics",
+  },
 ];
 
 const bottomMenuItems = [
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  { name: "Help", href: "/dashboard/help", icon: HelpCircle },
+  {
+    name: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
+    description: "Preferences",
+  },
+  {
+    name: "Help",
+    href: "/dashboard/help",
+    icon: HelpCircle,
+    description: "Support & docs",
+  },
 ];
 
 export default function Sidebar() {
@@ -42,6 +83,7 @@ export default function Sidebar() {
   const { user } = useAppSelector((state) => state.auth);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Load collapsed state from localStorage after mount
   useEffect(() => {
@@ -64,14 +106,8 @@ export default function Sidebar() {
     };
 
     fetchUnreadCount();
-
-    // Set up polling every 30 seconds to check for new notifications
     const interval = setInterval(fetchUnreadCount, 30000);
-
-    // Also set up event listener for when notifications are marked as read
-    const handleNotificationUpdate = () => {
-      fetchUnreadCount();
-    };
+    const handleNotificationUpdate = () => fetchUnreadCount();
     window.addEventListener("notificationsUpdated", handleNotificationUpdate);
 
     return () => {
@@ -83,7 +119,7 @@ export default function Sidebar() {
     };
   }, []);
 
-  // Persist on change (client-only)
+  // Persist on change
   useEffect(() => {
     try {
       localStorage.setItem("sidebarCollapsed", JSON.stringify(isCollapsed));
@@ -91,114 +127,136 @@ export default function Sidebar() {
   }, [isCollapsed]);
 
   const handleToggle = () => setIsCollapsed((v) => !v);
-
   const handleLogout = async () => {
     await dispatch(logout());
     router.push("/login");
   };
 
+  // When collapsed, only show text on hover
+  const showText = !isCollapsed || isHovered;
   const sidebarWidth = isCollapsed ? "w-20" : "w-64";
 
   return (
     <>
-      {/* Sidebar */}
       <aside
-        className={`fixed left-2.5 top-2.5 bottom-2.5 ${sidebarWidth} bg-white rounded-2xl flex flex-col transition-all duration-300 z-30 border border-gray-100 shadow-sm`}
+        className={`fixed left-3 top-3 bottom-3 ${sidebarWidth} bg-white rounded-2xl flex flex-col transition-all duration-300 z-30 shadow-xl border border-gray-100`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Toggle Button */}
-        <div className="flex justify-end p-3">
-          <button
-            onClick={handleToggle}
-            className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-200"
-          >
-            <ChevronLeft
-              size={16}
-              className={`text-gray-500 transition-transform duration-200 ${
+        {/* Logo Section */}
+        <div
+          className={`relative p-5 ${isCollapsed ? "px-3" : ""} border-b border-gray-100`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="relative flex-shrink-0">
+                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+                  <Sparkles size={18} className="text-white" />
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full ring-2 ring-white" />
+              </div>
+              {showText && (
+                <div className="transition-opacity duration-200 whitespace-nowrap">
+                  <h1 className="text-lg font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                    MediCare
+                  </h1>
+                  <p className="text-[10px] text-gray-400 -mt-0.5">
+                    Admin Portal
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleToggle}
+              className={`absolute -right-3 top-6 bg-white border border-gray-200 rounded-full p-1.5 shadow-md hover:shadow-lg transition-all duration-200 hover:bg-gray-50 ${
                 isCollapsed ? "rotate-180" : ""
               }`}
-            />
-          </button>
+            >
+              <ChevronLeft size={12} className="text-gray-500" />
+            </button>
+          </div>
         </div>
 
         {/* User Profile Section */}
-        <div
-          className={`px-3 pb-4 ${isCollapsed ? "flex justify-center" : ""}`}
+        {/* <div
+          className={`mx-3 mt-4 p-2.5 rounded-xl bg-gradient-to-br from-gray-50 to-white border border-gray-100 ${isCollapsed ? "flex justify-center" : ""}`}
         >
           <div
-            className={`flex items-center gap-3 ${
-              isCollapsed ? "justify-center" : ""
-            }`}
+            className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}
           >
-            <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
                 <span className="text-white font-semibold text-sm">
                   {user?.name?.charAt(0) || "A"}
                 </span>
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
             </div>
-
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0">
+            {showText && (
+              <div className="flex-1 min-w-0 transition-opacity duration-200">
                 <p className="text-sm font-semibold text-gray-800 truncate">
                   {user?.name || "Admin User"}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-[10px] text-gray-500 truncate uppercase tracking-wider">
                   {user?.role || "Administrator"}
                 </p>
               </div>
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-2 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 overflow-y-auto custom-scrollbar">
           <div className="space-y-6">
             {/* Main Menu */}
             <div>
-              {!isCollapsed && (
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
+              {showText && (
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 px-2">
                   Main Menu
                 </p>
               )}
-
               <div className="space-y-1">
                 {menuItems.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
-
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
                       className={`
-                        group relative flex items-center gap-3 px-3 py-2.5 rounded-lg
+                        group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
                         transition-all duration-200
+                        ${isCollapsed ? "justify-center" : ""}
                         ${
                           isActive
-                            ? "bg-blue-50 text-blue-600"
+                            ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
                             : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
                         }
-                        ${isCollapsed ? "justify-center" : ""}
                       `}
                     >
                       <Icon
                         size={20}
-                        className={`flex-shrink-0 ${
+                        className={`flex-shrink-0 transition-all duration-200 ${
                           isActive
                             ? "text-blue-600"
-                            : "text-gray-500 group-hover:text-blue-600"
+                            : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"
                         }`}
                       />
-
-                      {!isCollapsed && (
-                        <span className="text-sm font-medium">{item.name}</span>
-                      )}
-
-                      {/* Tooltip */}
-                      {isCollapsed && (
-                        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap">
+                      {showText && (
+                        <span className="text-sm font-medium whitespace-nowrap">
                           {item.name}
+                        </span>
+                      )}
+                      {isActive && showText && (
+                        <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full" />
+                      )}
+                      {/* Tooltip for collapsed state - only show when collapsed AND not hovered */}
+                      {isCollapsed && !isHovered && (
+                        <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
+                          <p className="font-medium">{item.name}</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">
+                            {item.description}
+                          </p>
                         </div>
                       )}
                     </Link>
@@ -207,53 +265,62 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {/* Notifications Section with Real-time Badge */}
+            {/* Notifications Section */}
             <div>
-              {!isCollapsed && (
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-3">
+              {showText && (
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 px-2">
                   Updates
                 </p>
               )}
-
               <div className="space-y-1">
                 <Link
                   href="/dashboard/notifications"
                   className={`
-                    w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                    transition-all duration-200 relative
+                    group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
+                    transition-all duration-200
+                    ${isCollapsed ? "justify-center" : ""}
                     ${
                       pathname === "/dashboard/notifications"
-                        ? "bg-blue-50 text-blue-600"
+                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
                         : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
                     }
-                    ${isCollapsed ? "justify-center" : ""}
                   `}
                 >
-                  <Bell
-                    size={20}
-                    className={`flex-shrink-0 ${
-                      pathname === "/dashboard/notifications"
-                        ? "text-blue-600"
-                        : "text-gray-500 group-hover:text-blue-600"
-                    }`}
-                  />
-
-                  {!isCollapsed && (
-                    <span className="text-sm font-medium">Notifications</span>
+                  <div className="relative flex-shrink-0">
+                    <Bell
+                      size={20}
+                      className={`transition-all duration-200 ${
+                        pathname === "/dashboard/notifications"
+                          ? "text-blue-600"
+                          : "text-gray-500 group-hover:text-blue-600"
+                      }`}
+                    />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full ring-2 ring-white">
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  {showText && (
+                    <>
+                      <span className="text-sm font-medium whitespace-nowrap">
+                        Notifications
+                      </span>
+                      {unreadCount > 0 && (
+                        <span className="ml-auto text-xs text-red-500 font-medium">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </>
                   )}
-
-                  {/* Unread Badge - Expanded State */}
-                  {!isCollapsed && unreadCount > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-
-                  {/* Unread Badge - Collapsed State */}
-                  {isCollapsed && unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
+                  {/* Tooltip for collapsed state */}
+                  {isCollapsed && !isHovered && unreadCount > 0 && (
+                    <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
+                      <p className="font-medium">Notifications</p>
+                      <p className="text-[10px] text-red-400 mt-0.5">
+                        {unreadCount} unread
+                      </p>
+                    </div>
                   )}
                 </Link>
               </div>
@@ -267,55 +334,97 @@ export default function Sidebar() {
             {bottomMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
-
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={`
-                    flex items-center gap-3 px-3 py-2.5 rounded-lg
+                    flex items-center gap-3 px-3 py-2.5 rounded-xl
                     transition-all duration-200
+                    ${isCollapsed ? "justify-center" : ""}
                     ${
                       isActive
-                        ? "bg-blue-50 text-blue-600"
+                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
                         : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
                     }
-                    ${isCollapsed ? "justify-center" : ""}
                   `}
                 >
                   <Icon
                     size={20}
-                    className={`${
+                    className={`flex-shrink-0 transition-all duration-200 ${
                       isActive
                         ? "text-blue-600"
                         : "text-gray-500 group-hover:text-blue-600"
                     }`}
                   />
-
-                  {!isCollapsed && <span className="text-sm">{item.name}</span>}
+                  {showText && (
+                    <span className="text-sm font-medium whitespace-nowrap">
+                      {item.name}
+                    </span>
+                  )}
+                  {/* Tooltip for collapsed state */}
+                  {isCollapsed && !isHovered && (
+                    <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
+                      <p className="font-medium">{item.name}</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {item.description}
+                      </p>
+                    </div>
+                  )}
                 </Link>
               );
             })}
 
-            {/* Logout */}
+            {/* Logout Button */}
             <button
               onClick={handleLogout}
               className={`
-                w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
+                w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
                 text-red-600 hover:bg-red-50 hover:text-red-700
-                transition-all duration-200
+                transition-all duration-200 group
                 ${isCollapsed ? "justify-center" : ""}
               `}
             >
-              <LogOut size={20} />
-              {!isCollapsed && <span className="text-sm">Logout</span>}
+              <LogOut
+                size={20}
+                className="flex-shrink-0 transition-transform duration-200 group-hover:scale-105"
+              />
+              {showText && (
+                <span className="text-sm font-medium whitespace-nowrap">
+                  Logout
+                </span>
+              )}
+              {/* Tooltip for collapsed state */}
+              {isCollapsed && !isHovered && (
+                <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
+                  <p className="font-medium">Logout</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Sign out</p>
+                </div>
+              )}
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Layout spacer */}
-      <div className={`${sidebarWidth} ml-2.5 transition-all duration-300`} />
+      {/* Spacer for layout */}
+      <div className={`${sidebarWidth} ml-3 transition-all duration-300`} />
+
+      <style jsx>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #c1c1c1;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #a8a8a8;
+        }
+      `}</style>
     </>
   );
 }

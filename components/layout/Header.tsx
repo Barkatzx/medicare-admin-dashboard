@@ -15,10 +15,13 @@ import {
   BarChart3,
   Settings,
   HelpCircle,
+  User,
+  ChevronDown,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppSelector } from "@/store/hooks";
 import SearchModal from "@/components/ui/SearchModal";
+import Link from "next/link";
 
 interface SearchItem {
   name: string;
@@ -36,7 +39,9 @@ export default function Header() {
   const [searchResults, setSearchResults] = useState<SearchItem[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   // Define all searchable routes
   const menuItems: SearchItem[] = [
@@ -122,7 +127,6 @@ export default function Header() {
         ),
     );
 
-    // Sort results by relevance (exact matches first)
     const sortedResults = results.sort((a, b) => {
       const aExact = a.name.toLowerCase() === lowerQuery ? 1 : 0;
       const bExact = b.name.toLowerCase() === lowerQuery ? 1 : 0;
@@ -139,11 +143,10 @@ export default function Header() {
     const debounceTimer = setTimeout(() => {
       performSearch(searchQuery);
     }, 200);
-
     return () => clearTimeout(debounceTimer);
   }, [searchQuery, performSearch]);
 
-  // Handle click outside to close results
+  // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -153,13 +156,17 @@ export default function Header() {
         setShowResults(false);
         setIsSearchFocused(false);
       }
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setIsProfileOpen(false);
+      }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle keyboard navigation for dropdown
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Escape") {
       setShowResults(false);
@@ -167,14 +174,12 @@ export default function Header() {
     }
   };
 
-  // Clear search
   const clearSearch = () => {
     setSearchQuery("");
     setSearchResults([]);
     setShowResults(false);
   };
 
-  // Navigate to result
   const navigateTo = (href: string) => {
     router.push(href);
     clearSearch();
@@ -188,12 +193,10 @@ export default function Header() {
         setIsSearchModalOpen(true);
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Group results by category
   const groupedResults = searchResults.reduce(
     (acc, item) => {
       if (!acc[item.category]) {
@@ -208,9 +211,9 @@ export default function Header() {
   return (
     <>
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-        <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center justify-between px-6 py-4">
           {/* Left Section - Welcome Message */}
-          <div className="flex items-center gap-4">
+          <div className="flex-1">
             <div>
               <h2 className="text-lg font-semibold text-gray-800">
                 Welcome back, {user?.name?.split(" ")[0] || "Admin"}!
@@ -221,13 +224,13 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Right Section - Search Bar */}
-          <div className="flex-1 max-w-md relative" ref={searchRef}>
+          {/* Center Section - Search Bar */}
+          <div className="flex-1 max-w-xl relative" ref={searchRef}>
             <div
               className={`relative transition-all duration-200 ${isSearchFocused ? "scale-105" : ""}`}
             >
               <Search
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
                 size={18}
               />
               <input
@@ -240,17 +243,17 @@ export default function Header() {
                   if (searchQuery) performSearch(searchQuery);
                 }}
                 onKeyDown={handleKeyDown}
-                className="w-full pl-10 pr-10 py-2.5 bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200 text-sm"
+                className="w-full pl-11 pr-24 py-2.5 bg-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all duration-200 text-sm"
               />
               {searchQuery && (
                 <button
                   onClick={clearSearch}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-14 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <X size={16} />
                 </button>
               )}
-              <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded hidden lg:block">
+              <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-md font-mono">
                 ⌘K
               </kbd>
             </div>
@@ -313,12 +316,78 @@ export default function Header() {
                   <p className="text-sm text-gray-500">
                     No results found for "{searchQuery}"
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Try searching for dashboard, users, products, or settings
-                  </p>
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Right Section - User Avatar, Name & Role */}
+          <div className="flex-1 flex justify-end" ref={profileRef}>
+            <div className="relative">
+              <button
+                onClick={() => setIsProfileOpen(!isProfileOpen)}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 transition-all duration-200 group"
+              >
+                {/* Avatar */}
+                <div className="relative">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
+                    <span className="text-white font-semibold text-sm">
+                      {user?.name?.charAt(0) || "A"}
+                    </span>
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                </div>
+
+                {/* Name and Role */}
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-semibold text-gray-800">
+                    {user?.name || "Admin User"}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {user?.role || "Administrator"}
+                  </p>
+                </div>
+
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-400 transition-transform duration-200 hidden md:block ${
+                    isProfileOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Profile Dropdown */}
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50 animate-fade-in">
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {user?.name || "Admin User"}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {user?.email || "admin@example.com"}
+                    </p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/dashboard/settings"
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <Settings size={14} />
+                      <span>Settings</span>
+                    </Link>
+                    <Link
+                      href="/dashboard/help"
+                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <HelpCircle size={14} />
+                      <span>Help & Support</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
