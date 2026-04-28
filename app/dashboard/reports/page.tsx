@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { api, SalesSummary } from "@/config/api";
+import { api, SalesSummaryData, TopProduct } from "@/config/api";
 import {
   Download,
   TrendingUp,
@@ -12,43 +12,218 @@ import {
   Users,
   Package,
   DollarSign,
-  Calendar,
   ArrowUpRight,
   ArrowDownRight,
   Printer,
   FileText,
   BarChart3,
   PieChart,
+  Calendar,
+  Tag,
+  Star,
+  Layers,
+  RefreshCw,
+  Zap,
+  Award,
+  Clock,
 } from "lucide-react";
-import SalesChart from "@/app/dashboard/charts/SalesChart";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
+  Cell,
+  PieChart as RechartsPieChart,
+  Pie,
 } from "recharts";
 
+// Types
+interface DailyBreakdownItem {
+  period: "daily";
+  totalSales: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  totalItemsSold: number;
+}
+
+interface WeeklyResponse {
+  daily_breakdown: DailyBreakdownItem[];
+  weekly_totals: {
+    totalSales: number;
+    totalOrders: number;
+    totalItemsSold: number;
+  };
+  average_daily_sales: number;
+}
+
+interface MonthlyResponse {
+  daily_breakdown: DailyBreakdownItem[];
+  monthly_totals: {
+    totalSales: number;
+    totalOrders: number;
+    totalItemsSold: number;
+  };
+  average_daily_sales: number;
+  best_day?: DailyBreakdownItem;
+}
+
+interface YearlyResponse {
+  monthly_breakdown: Array<{
+    period: "monthly";
+    totalSales: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    totalItemsSold: number;
+  }>;
+  yearly_totals: {
+    totalSales: number;
+    totalOrders: number;
+    totalItemsSold: number;
+  };
+  average_monthly_sales: number;
+  best_month?: {
+    totalSales: number;
+    totalOrders: number;
+    totalItemsSold: number;
+  };
+}
+
+interface DailyResponse {
+  period: "daily";
+  date: string;
+  totalSales: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  totalItemsSold: number;
+  totalDiscounts: number;
+}
+
+type ChartPeriod = "daily" | "weekly" | "monthly" | "yearly";
+
+interface ChartDataPoint {
+  label: string;
+  sales: number;
+  orders: number;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  delivered: "#10b981",
+  pending: "#f59e0b",
+  processing: "#3b82f6",
+  shipped: "#8b5cf6",
+  confirmed: "#06b6d4",
+  cancelled: "#ef4444",
+};
+
+const GRADIENT_COLORS = [
+  "#3b82f6",
+  "#10b981",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ef4444",
+  "#06b6d4",
+  "#ec4899",
+  "#6366f1",
+];
+
+function buildChartData(period: ChartPeriod, raw: any): ChartDataPoint[] {
+  if (!raw) return [];
+  if (period === "daily")
+    return [
+      {
+        label: (raw as DailyResponse).date,
+        sales: raw.totalSales,
+        orders: raw.totalOrders,
+      },
+    ];
+  if (period === "weekly")
+    return (
+      (raw as WeeklyResponse).daily_breakdown?.map((item, i) => ({
+        label: `Day ${i + 1}`,
+        sales: item.totalSales,
+        orders: item.totalOrders,
+      })) || []
+    );
+  if (period === "monthly")
+    return (
+      (raw as MonthlyResponse).daily_breakdown?.map((item, i) => ({
+        label: `${i + 1}`,
+        sales: item.totalSales,
+        orders: item.totalOrders,
+      })) || []
+    );
+  if (period === "yearly") {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    return (
+      (raw as YearlyResponse).monthly_breakdown?.map((item, i) => ({
+        label: months[i] || `M${i + 1}`,
+        sales: item.totalSales,
+        orders: item.totalOrders,
+      })) || []
+    );
+  }
+  return [];
+}
+
 export default function ReportsPage() {
-  const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">(
-    "monthly",
+  const [salesSummary, setSalesSummary] = useState<SalesSummaryData | null>(
+    null,
   );
-  const [salesData, setSalesData] = useState<any[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [rawData, setRawData] = useState<any>(null);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [period, setPeriod] = useState<ChartPeriod>("monthly");
+  const [customStart, setCustomStart] = useState("");
+  const [customEnd, setCustomEnd] = useState("");
+  const [customData, setCustomData] = useState<{
+    totalSales: number;
+    totalOrders: number;
+    totalItemsSold: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const init = async () => {
       try {
-        const summary = await api.getSalesSummary();
+        const [summary, products] = await Promise.all([
+          api.getSalesSummary(),
+          api.getTopProducts(10),
+        ]);
         setSalesSummary(summary);
+        setTopProducts(products);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    init();
+  }, []);
 
-        // Fetch sales data based on period
+  useEffect(() => {
+    const fetchChart = async () => {
+      setChartLoading(true);
+      try {
         let data;
         switch (period) {
           case "daily":
@@ -60,176 +235,172 @@ export default function ReportsPage() {
           case "monthly":
             data = await api.getMonthlySales();
             break;
+          case "yearly":
+            data = await api.getYearlySales();
+            break;
         }
-        setSalesData(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
+        setRawData(data);
+        setChartData(buildChartData(period, data));
+      } catch (err) {
+        console.error(err);
       } finally {
-        setLoading(false);
+        setChartLoading(false);
       }
     };
-    fetchData();
+    fetchChart();
   }, [period]);
+
+  const handleCustomRange = async () => {
+    if (!customStart || !customEnd) return;
+    try {
+      const res = await api.getCustomRangeSales(customStart, customEnd);
+      setCustomData(res?.salesData ?? null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleExport = async (format: "csv" | "pdf") => {
     setExporting(true);
     try {
       await api.exportSalesData(format);
-    } catch (error) {
-      console.error("Failed to export data:", error);
+    } catch (err) {
+      console.error(err);
     } finally {
       setExporting(false);
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const periodTotals = (() => {
+    if (!rawData) return { totalSales: 0, totalOrders: 0, totalItemsSold: 0 };
+    if (period === "daily")
+      return {
+        totalSales: rawData.totalSales || 0,
+        totalOrders: rawData.totalOrders || 0,
+        totalItemsSold: rawData.totalItemsSold || 0,
+      };
+    if (period === "weekly")
+      return (
+        rawData.weekly_totals || {
+          totalSales: 0,
+          totalOrders: 0,
+          totalItemsSold: 0,
+        }
+      );
+    if (period === "monthly")
+      return (
+        rawData.monthly_totals || {
+          totalSales: 0,
+          totalOrders: 0,
+          totalItemsSold: 0,
+        }
+      );
+    return (
+      rawData.yearly_totals || {
+        totalSales: 0,
+        totalOrders: 0,
+        totalItemsSold: 0,
+      }
+    );
+  })();
+
+  const pieData = (salesSummary?.sales_by_status ?? [])
+    .filter((s) => s.totalSales > 0)
+    .map((s) => ({
+      name: s.status,
+      value: s.totalSales,
+      orders: s.totalOrders,
+    }));
 
   const metrics = [
     {
       label: "Total Revenue",
-      value: `৳${salesSummary?.totalRevenue?.toLocaleString() || "0"}`,
+      value: `৳${salesSummary?.overall_summary?.totalSales?.toLocaleString() ?? "0"}`,
+      sub: `${period} ৳${periodTotals.totalSales.toLocaleString()}`,
       icon: DollarSign,
       color: "from-emerald-500 to-teal-500",
-      bgGradient: "from-emerald-50 to-teal-50",
-      trend: "+12.5%",
-      trendUp: true,
+      bg: "from-emerald-50 to-teal-50",
+      growth: salesSummary?.growth_percentage?.monthly ?? 0,
     },
     {
       label: "Total Orders",
-      value: salesSummary?.totalOrders?.toString() || "0",
+      value: salesSummary?.overall_summary?.totalOrders?.toString() ?? "0",
+      sub: `${period} ${periodTotals.totalOrders} orders`,
       icon: ShoppingBag,
       color: "from-blue-500 to-indigo-500",
-      bgGradient: "from-blue-50 to-indigo-50",
-      trend: "+8.2%",
-      trendUp: true,
+      bg: "from-blue-50 to-indigo-50",
+      growth: salesSummary?.growth_percentage?.weekly ?? 0,
     },
     {
-      label: "Average Order Value",
-      value: `৳${salesSummary?.averageOrderValue?.toLocaleString() || "0"}`,
+      label: "Avg Order Value",
+      value: `৳${salesSummary?.overall_summary?.averageOrderValue?.toLocaleString() ?? "0"}`,
+      sub: `${periodTotals.totalItemsSold} items sold`,
       icon: TrendingUp,
       color: "from-purple-500 to-pink-500",
-      bgGradient: "from-purple-50 to-pink-50",
-      trend: "+5.4%",
-      trendUp: true,
+      bg: "from-purple-50 to-pink-50",
+      growth: salesSummary?.growth_percentage?.daily ?? 0,
     },
     {
       label: "Total Customers",
-      value: salesSummary?.totalCustomers?.toString() || "0",
+      value: salesSummary?.overall_summary?.totalCustomers?.toString() ?? "0",
+      sub: `৳${salesSummary?.overall_summary?.totalDiscounts?.toLocaleString() ?? "0"} discounts`,
       icon: Users,
       color: "from-orange-500 to-red-500",
-      bgGradient: "from-orange-50 to-red-50",
-      trend: "+15.3%",
-      trendUp: true,
+      bg: "from-orange-50 to-red-50",
+      growth: salesSummary?.growth_percentage?.yearly ?? 0,
     },
   ];
 
-  const getXAxisKey = () => {
-    switch (period) {
-      case "daily":
-        return "date";
-      case "weekly":
-        return "week";
-      case "monthly":
-        return "month";
-      default:
-        return "date";
-    }
-  };
-
-  if (loading) {
+  if (loading)
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-500">Loading reports...</p>
         </div>
       </div>
     );
-  }
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-gray-900 to-gray-800 p-8 text-white">
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-white/10"></div>
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-white/5"></div>
-        <div className="relative">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-white/10 rounded-xl">
-                  <BarChart3 size={24} className="text-white" />
-                </div>
-                <h1 className="text-3xl font-bold">Reports & Analytics</h1>
-              </div>
-              <p className="text-gray-300">
-                Comprehensive sales insights and performance metrics
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={handlePrint}
-                variant="secondary"
-                className="bg-white/10 text-white hover:bg-white/20 border-white/20"
-              >
-                <Printer size={16} className="mr-2" />
-                Print
-              </Button>
-              <Button
-                onClick={() => handleExport("csv")}
-                loading={exporting}
-                className="bg-white/10 text-white hover:bg-white/20 border-white/20"
-              >
-                <FileText size={16} className="mr-2" />
-                Export CSV
-              </Button>
-              <Button
-                onClick={() => handleExport("pdf")}
-                loading={exporting}
-                variant="secondary"
-                className="bg-white/10 text-white hover:bg-white/20 border-white/20"
-              >
-                <Download size={16} className="mr-2" />
-                Export PDF
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metrics.map((metric) => {
-          const Icon = metric.icon;
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {metrics.map((m) => {
+          const Icon = m.icon;
+          const up = m.growth >= 0;
           return (
             <div
-              key={metric.label}
-              className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-gray-100"
+              key={m.label}
+              className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
             >
               <div
-                className={`absolute inset-0 bg-gradient-to-br ${metric.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                className={`absolute inset-0 bg-gradient-to-br ${m.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
               />
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div
-                    className={`p-3 rounded-xl bg-gradient-to-br ${metric.color} shadow-lg`}
+                    className={`p-3 rounded-xl bg-gradient-to-br ${m.color} shadow-lg`}
                   >
                     <Icon size={20} className="text-white" />
                   </div>
-                  <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-50 text-green-600 text-xs font-medium">
-                    <ArrowUpRight size={12} />
-                    {metric.trend}
+                  <div
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${up ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}
+                  >
+                    {up ? (
+                      <ArrowUpRight size={12} />
+                    ) : (
+                      <ArrowDownRight size={12} />
+                    )}
+                    {up ? "+" : ""}
+                    {m.growth}%
                   </div>
                 </div>
-                <p className="text-sm text-gray-500 mb-1">{metric.label}</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {metric.value}
-                </p>
+                <p className="text-xs text-gray-500 mb-1">{m.label}</p>
+                <p className="text-2xl font-bold text-gray-900">{m.value}</p>
+                <p className="text-xs text-gray-400 mt-1 capitalize">{m.sub}</p>
                 <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full bg-gradient-to-r ${metric.color} w-3/4`}
+                    className={`h-full rounded-full bg-gradient-to-r ${m.color} w-3/4`}
                   />
                 </div>
               </div>
@@ -238,8 +409,34 @@ export default function ReportsPage() {
         })}
       </div>
 
+      {/* Growth Summary */}
+      {salesSummary?.growth_percentage && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {(["daily", "weekly", "monthly", "yearly"] as const).map((k) => {
+            const val = salesSummary.growth_percentage[k];
+            const up = val >= 0;
+            return (
+              <div
+                key={k}
+                className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center"
+              >
+                <p className="text-xs text-gray-500 capitalize mb-1">
+                  {k} growth
+                </p>
+                <p
+                  className={`text-xl font-bold ${up ? "text-green-600" : "text-red-600"}`}
+                >
+                  {up ? "+" : ""}
+                  {val}%
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Sales Chart Section */}
-      <Card className="border-0 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
@@ -247,170 +444,467 @@ export default function ReportsPage() {
                 <TrendingUp size={18} className="text-blue-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Sales Overview</h3>
+                <h3 className="font-semibold text-gray-900">Sales Trend</h3>
                 <p className="text-sm text-gray-500">
-                  Revenue and order trends over time
+                  Revenue over selected period
                 </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              {(["daily", "weekly", "monthly"] as const).map((p) => (
+            <div className="flex gap-2 flex-wrap">
+              {(["daily", "weekly", "monthly", "yearly"] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 capitalize ${
-                    period === p
-                      ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${period === p ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
                 >
                   {p}
                 </button>
               ))}
             </div>
           </div>
-        </div>
-        <div className="p-6">
-          <div className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={salesData}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis
-                  dataKey={getXAxisKey()}
-                  stroke="#9ca3af"
-                  fontSize={12}
-                  tickLine={false}
-                />
-                <YAxis
-                  stroke="#9ca3af"
-                  fontSize={12}
-                  tickLine={false}
-                  tickFormatter={(value) => `৳${value.toLocaleString()}`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "white",
-                    borderRadius: "12px",
-                    border: "1px solid #e5e7eb",
-                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                  }}
-                  formatter={(value: any) => [
-                    `৳${value.toLocaleString()}`,
-                    "Revenue",
-                  ]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="sales"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  fill="url(#colorRevenue)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </Card>
-
-      {/* Additional Insights Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Products Preview */}
-        <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <Package size={18} className="text-amber-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Top Products</h3>
-              <p className="text-sm text-gray-500">Best selling products</p>
-            </div>
-          </div>
-          <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-4 mt-4">
             {[
-              { name: "Paracetamol 600mg", sales: 3200, growth: "+15%" },
-              { name: "Vitamin C Complex", sales: 2800, growth: "+12%" },
-              { name: "Antibiotic Cream", sales: 2100, growth: "+8%" },
-            ].map((product, idx) => (
+              {
+                label: "Period Revenue",
+                value: `৳${periodTotals.totalSales.toLocaleString()}`,
+              },
+              {
+                label: "Period Orders",
+                value: periodTotals.totalOrders.toString(),
+              },
+              {
+                label: "Items Sold",
+                value: periodTotals.totalItemsSold.toString(),
+              },
+            ].map((s) => (
               <div
-                key={idx}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                key={s.label}
+                className="bg-gray-50 rounded-xl p-3 text-center"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 font-bold text-sm">
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {product.name}
-                    </p>
-                    <p className="text-xs text-gray-500">Total sales</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">
-                    ৳{product.sales.toLocaleString()}
-                  </p>
-                  <p className="text-xs text-green-600">{product.growth}</p>
-                </div>
+                <p className="text-xs text-gray-500">{s.label}</p>
+                <p className="text-lg font-bold text-gray-900 mt-0.5">
+                  {s.value}
+                </p>
               </div>
             ))}
           </div>
         </div>
-
-        {/* Quick Stats */}
-        <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <PieChart size={18} className="text-purple-600" />
+        <div className="p-6">
+          {chartLoading ? (
+            <div className="h-80 flex items-center justify-center">
+              <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
             </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">Quick Stats</h3>
-              <p className="text-sm text-gray-500">Performance at a glance</p>
+          ) : (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="gSales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gOrders" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="label"
+                    stroke="#9ca3af"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="#9ca3af"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `৳${v.toLocaleString()}`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "white",
+                      borderRadius: "12px",
+                      border: "1px solid #e5e7eb",
+                      boxShadow: "0 4px 6px -1px rgb(0 0 0/0.1)",
+                    }}
+                    formatter={(value: number, name: string) => [
+                      name === "sales" ? `৳${value.toLocaleString()}` : value,
+                      name === "sales" ? "Revenue" : "Orders",
+                    ]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="sales"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fill="url(#gSales)"
+                    name="sales"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="orders"
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fill="url(#gOrders)"
+                    name="orders"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-              <div>
-                <p className="text-xs text-gray-500">Conversion Rate</p>
-                <p className="text-lg font-bold text-gray-900">3.24%</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">vs last month</p>
-                <p className="text-sm text-green-600">+0.8%</p>
-              </div>
+          )}
+          <div className="flex items-center justify-center gap-6 mt-3">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500" />
+              <span className="text-xs text-gray-500">Revenue (৳)</span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl">
-              <div>
-                <p className="text-xs text-gray-500">Customer Retention</p>
-                <p className="text-lg font-bold text-gray-900">78.5%</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">vs last month</p>
-                <p className="text-sm text-green-600">+5.2%</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl">
-              <div>
-                <p className="text-xs text-gray-500">Avg. Response Time</p>
-                <p className="text-lg font-bold text-gray-900">2.4 hrs</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500">vs last month</p>
-                <p className="text-sm text-red-600">-0.3 hrs</p>
-              </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-emerald-500" />
+              <span className="text-xs text-gray-500">Orders</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Footer / Last Updated */}
-      <div className="text-center text-xs text-gray-400 pt-4">
+      {/* Custom Date Range */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-indigo-100 rounded-lg">
+            <Calendar size={18} className="text-indigo-600" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900">Custom Date Range</h3>
+            <p className="text-sm text-gray-500">
+              Query sales for any date window
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <button
+            onClick={handleCustomRange}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors"
+          >
+            <RefreshCw size={14} /> Fetch
+          </button>
+        </div>
+        {customData && (
+          <div className="grid grid-cols-3 gap-4 mt-4">
+            {[
+              {
+                label: "Revenue",
+                value: `৳${customData.totalSales.toLocaleString()}`,
+              },
+              { label: "Orders", value: customData.totalOrders.toString() },
+              {
+                label: "Items Sold",
+                value: customData.totalItemsSold.toString(),
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="bg-indigo-50 rounded-xl p-4 text-center"
+              >
+                <p className="text-xs text-gray-500">{s.label}</p>
+                <p className="text-xl font-bold text-indigo-700 mt-1">
+                  {s.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Top Products & Sales by Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Products */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <Star size={18} className="text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Top Products</h3>
+              <p className="text-sm text-gray-500">By total revenue</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {topProducts.length === 0 ? (
+              <p className="text-center text-gray-400 text-sm py-6">
+                No product data available
+              </p>
+            ) : (
+              topProducts.slice(0, 5).map((product, idx) => {
+                const price =
+                  typeof product.price === "string"
+                    ? parseFloat(product.price)
+                    : product.price;
+                const maxRevenue = topProducts[0]?.totalRevenue || 1;
+                const pct = Math.round(
+                  (product.totalRevenue / maxRevenue) * 100,
+                );
+                const medals = ["🥇", "🥈", "🥉"];
+                return (
+                  <div
+                    key={product.id}
+                    className="p-3 rounded-xl bg-gray-50 hover:bg-amber-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 mb-2">
+                      {product.images?.[0]?.url ? (
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                          <img
+                            src={product.images[0].url}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Package size={16} className="text-amber-600" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">
+                            {medals[idx] ?? `#${idx + 1}`}
+                          </span>
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {product.name}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 mt-0.5">
+                          <span className="text-xs text-gray-500">
+                            {product.totalSold} units sold
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            ৳{price.toLocaleString()} / unit
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-sm font-bold text-emerald-600">
+                          ৳{product.totalRevenue.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {product.category?.name ?? "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Sales by Status */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <PieChart size={18} className="text-purple-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Sales by Status</h3>
+              <p className="text-sm text-gray-500">
+                Revenue breakdown per order status
+              </p>
+            </div>
+          </div>
+          {pieData.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+              <PieChart size={32} className="mb-2 opacity-30" />
+              <p className="text-sm">No completed orders yet</p>
+            </div>
+          ) : (
+            <>
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={55}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, i) => (
+                        <Cell
+                          key={i}
+                          fill={
+                            STATUS_COLORS[entry.name] ||
+                            GRADIENT_COLORS[i % GRADIENT_COLORS.length]
+                          }
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(v: number) => [
+                        `৳${v.toLocaleString()}`,
+                        "Revenue",
+                      ]}
+                    />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-2 mt-2">
+                {(salesSummary?.sales_by_status ?? []).map((s) => (
+                  <div
+                    key={s.status}
+                    className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{
+                          backgroundColor: STATUS_COLORS[s.status] ?? "#9ca3af",
+                        }}
+                      />
+                      <span className="text-sm font-medium text-gray-700 capitalize">
+                        {s.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-gray-400">
+                        {s.totalOrders} orders
+                      </span>
+                      <span className="text-sm font-semibold text-gray-900">
+                        ৳{s.totalSales.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Top Categories */}
+      {(salesSummary?.overall_summary?.topCategories ?? []).length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="p-2 bg-teal-100 rounded-lg">
+              <Layers size={18} className="text-teal-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">Top Categories</h3>
+              <p className="text-sm text-gray-500">By units sold</p>
+            </div>
+          </div>
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={salesSummary!.overall_summary.topCategories}
+                layout="vertical"
+                margin={{ left: 20, right: 20 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#e5e7eb"
+                  horizontal={false}
+                />
+                <XAxis
+                  type="number"
+                  stroke="#9ca3af"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  stroke="#6b7280"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  width={120}
+                />
+                <Tooltip formatter={(v: number) => [v, "Units sold"]} />
+                <Bar dataKey="totalSold" radius={[0, 8, 8, 0]}>
+                  {salesSummary!.overall_summary.topCategories.map((_, i) => (
+                    <Cell
+                      key={i}
+                      fill={GRADIENT_COLORS[i % GRADIENT_COLORS.length]}
+                      fillOpacity={0.85}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Discounts & Items Sold Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl p-6 border border-rose-100">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-rose-100 rounded-lg">
+              <Tag size={18} className="text-rose-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900">
+              Total Discounts Given
+            </h3>
+          </div>
+          <p className="text-3xl font-bold text-rose-600">
+            ৳
+            {salesSummary?.overall_summary?.totalDiscounts?.toLocaleString() ??
+              "0"}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            Across all orders lifetime
+          </p>
+        </div>
+        <div className="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-2xl p-6 border border-violet-100">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-violet-100 rounded-lg">
+              <Package size={18} className="text-violet-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900">Total Items Sold</h3>
+          </div>
+          <p className="text-3xl font-bold text-violet-600">
+            {salesSummary?.overall_summary?.totalItemsSold?.toLocaleString() ??
+              "0"}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            Across all orders lifetime
+          </p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="text-center text-xs text-gray-400 pb-2">
         Last updated: {new Date().toLocaleString()}
       </div>
     </div>

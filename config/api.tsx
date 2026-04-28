@@ -151,6 +151,29 @@ export interface SalesSummary {
   totalProducts: number;
 }
 
+export interface YearlyResponse {
+  monthly_breakdown: Array<{
+    period: "monthly";
+    totalSales: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    totalItemsSold: number;
+  }>;
+  yearly_totals: {
+    totalSales: number;
+    totalOrders: number;
+    totalItemsSold: number;
+  };
+  average_monthly_sales: number;
+  best_month?: {
+    period: "monthly";
+    totalSales: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    totalItemsSold: number;
+  };
+}
+
 export interface TopProduct extends Product {
   totalSold: number;
   totalRevenue: number;
@@ -777,6 +800,31 @@ class API {
   async getSalesSummary(): Promise<SalesSummaryData> {
     return this.request("/sales/summary");
   }
+
+  async getCustomRangeSales(
+    startDate: string,
+    endDate: string,
+  ): Promise<{
+    salesData: {
+      totalSales: number;
+      totalOrders: number;
+      averageOrderValue: number;
+      totalItemsSold: number;
+      totalDiscounts: number;
+    };
+    dailyBreakdown: any[];
+  }> {
+    const data = await this.request(
+      `/sales/custom-range?startDate=${startDate}&endDate=${endDate}`,
+    );
+    return data;
+  }
+
+  async getYearlySales(): Promise<YearlyResponse> {
+    const data = await this.request("/sales/yearly");
+    return data;
+  }
+
   async exportSalesData(format: "csv" | "pdf" = "csv") {
     const token = this.getToken();
     const response = await fetch(
