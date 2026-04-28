@@ -346,7 +346,7 @@ export default function OrdersPage() {
                       </div>
                     </td>
                     <td className="py-3 px-6">
-                      <div className="flex flex-col gap-1">
+                      {/* <div className="flex flex-col gap-1">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
                             order.payment?.status === "paid"
@@ -356,11 +356,50 @@ export default function OrdersPage() {
                                 : "bg-red-100 text-red-700"
                           }`}
                         >
+                          <span>
+                            {order.payment?.status || "N/A"}{" "}
+                            {order.payment?.method && (
+                              <span className="text-xs text-gray-500 capitalize">
+                                {order.payment.method}
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                      </div> */}
+                      <div className="flex items-center gap-2">
+                        {/* Status Badge */}
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                            order.payment?.status === "paid"
+                              ? "bg-green-100 text-green-700 ring-1 ring-green-200"
+                              : order.payment?.status === "pending"
+                                ? "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200"
+                                : "bg-red-100 text-red-700 ring-1 ring-red-200"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              order.payment?.status === "paid"
+                                ? "bg-green-500"
+                                : order.payment?.status === "pending"
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
+                            }`}
+                          />
                           {order.payment?.status || "N/A"}
                         </span>
+
+                        {/* Separator Dot (Optional) */}
                         {order.payment?.method && (
-                          <span className="text-xs text-gray-500 capitalize">
-                            {order.payment.method}
+                          <span className="w-2 h-2 rounded-full bg-gray-300"></span>
+                        )}
+
+                        {/* Payment Method */}
+                        {order.payment?.method && (
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                            <span className="capitalize">
+                              {order.payment.method}
+                            </span>
                           </span>
                         )}
                       </div>
