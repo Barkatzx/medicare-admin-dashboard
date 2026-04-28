@@ -17,6 +17,8 @@ import {
   Settings,
   HelpCircle,
   Sparkles,
+  FolderCheck,
+  Layers2,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -44,7 +46,7 @@ const menuItems = [
   {
     name: "Categories",
     href: "/dashboard/categories",
-    icon: FolderTree,
+    icon: Layers2,
     description: "Organize products",
   },
   {
@@ -158,10 +160,10 @@ export default function Sidebar() {
               {showText && (
                 <div className="transition-opacity duration-200 whitespace-nowrap">
                   <h1 className="text-lg font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                    MediCare
+                    MediCarePLC
                   </h1>
                   <p className="text-[10px] text-gray-400 -mt-0.5">
-                    Admin Portal
+                    Administration Portal
                   </p>
                 </div>
               )}

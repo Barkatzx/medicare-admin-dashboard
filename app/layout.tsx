@@ -1,11 +1,10 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
 import ClientProviders from "./ClientProviders";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard",
+  title: "MediCarePLC Admin Dashboard",
   description: "Modern admin dashboard for managing your business",
 };
 
