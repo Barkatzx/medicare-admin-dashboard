@@ -1,7 +1,17 @@
+// src/app/dashboard/notifications/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, User } from "@/config/api";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  fetchNotifications,
+  fetchUsersForNotification,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  sendNotification,
+  sendBulkNotifications,
+  clearNotificationState,
+} from "@/store/slices/notificationSlice";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import {
@@ -18,20 +28,11 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: string;
-  isRead: boolean;
-  createdAt: string;
-}
-
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+  const { notifications, users, unreadCount, loading } = useAppSelector(
+    (state) => state.notifications,
+  );
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [isSendModalOpen, setIsSendModalOpen] = useState(false);
@@ -51,93 +52,26 @@ export default function NotificationsPage() {
   });
 
   useEffect(() => {
-    fetchNotifications();
-    fetchUsers();
-  }, []);
-
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const data = await api.getNotifications();
-      setNotifications(data?.notifications || []);
-      setUnreadCount(data?.unreadCount || 0);
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
-      toast.error("Failed to load notifications");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const data = await api.getUsers();
-      const allUsers = Array.isArray(data)
-        ? data.filter((user: User) => user.isApproved === true)
-        : [];
-      setUsers(allUsers);
-    } catch (error: any) {
-      console.error("Failed to fetch users:", error);
-      toast.error(error?.message || "Failed to load users");
-    }
-  };
+    dispatch(fetchNotifications());
+    dispatch(fetchUsersForNotification());
+    return () => {
+      dispatch(clearNotificationState());
+    };
+  }, [dispatch]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
-      await api.markNotificationAsRead(notificationId);
-      // Optimistically update UI regardless of response body
-      setNotifications((prev) =>
-        prev.map((notif) =>
-          notif.id === notificationId ? { ...notif, isRead: true } : notif,
-        ),
-      );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
-      toast.success("Marked as read");
-    } catch (error: any) {
-      // If error is just a JSON parse error on empty body, the request succeeded
-      if (
-        error?.message?.includes("JSON") ||
-        error?.message?.includes("Unexpected end") ||
-        error?.message?.includes("SyntaxError")
-      ) {
-        setNotifications((prev) =>
-          prev.map((notif) =>
-            notif.id === notificationId ? { ...notif, isRead: true } : notif,
-          ),
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-        toast.success("Marked as read");
-      } else {
-        console.error("Failed to mark as read:", error);
-        toast.error("Failed to mark as read");
-      }
+      await dispatch(markNotificationAsRead(notificationId)).unwrap();
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
-      await api.markAllNotificationsAsRead();
-      setNotifications((prev) =>
-        prev.map((notif) => ({ ...notif, isRead: true })),
-      );
-      setUnreadCount(0);
-      toast.success("All notifications marked as read");
-    } catch (error: any) {
-      // If error is just a JSON parse error on empty body, the request succeeded
-      if (
-        error?.message?.includes("JSON") ||
-        error?.message?.includes("Unexpected end") ||
-        error?.message?.includes("SyntaxError")
-      ) {
-        setNotifications((prev) =>
-          prev.map((notif) => ({ ...notif, isRead: true })),
-        );
-        setUnreadCount(0);
-        toast.success("All notifications marked as read");
-      } else {
-        console.error("Failed to mark all as read:", error);
-        toast.error("Failed to mark all as read");
-      }
+      await dispatch(markAllNotificationsAsRead()).unwrap();
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
     }
   };
 
@@ -157,16 +91,11 @@ export default function NotificationsPage() {
 
     setSending(true);
     try {
-      await api.sendNotification({
-        userId: sendForm.userId,
-        title: sendForm.title,
-        message: sendForm.message,
-        type: sendForm.type,
-      });
+      await dispatch(sendNotification(sendForm)).unwrap();
       toast.success("Notification sent successfully");
       setIsSendModalOpen(false);
       setSendForm({ userId: "", title: "", message: "", type: "system" });
-      fetchNotifications();
+      dispatch(fetchNotifications());
     } catch (error: any) {
       toast.error(error?.message || "Failed to send notification");
     } finally {
@@ -190,17 +119,19 @@ export default function NotificationsPage() {
 
     setSending(true);
     try {
-      await api.sendBulkNotifications({
-        userIds: selectedUserIds,
-        title: bulkForm.title,
-        message: bulkForm.message,
-        type: bulkForm.type,
-      });
+      await dispatch(
+        sendBulkNotifications({
+          userIds: selectedUserIds,
+          title: bulkForm.title,
+          message: bulkForm.message,
+          type: bulkForm.type,
+        }),
+      ).unwrap();
       toast.success(`Notification sent to ${selectedUserIds.length} user(s)`);
       setIsBulkModalOpen(false);
       setSelectedUserIds([]);
       setBulkForm({ title: "", message: "", type: "system" });
-      fetchNotifications();
+      dispatch(fetchNotifications());
     } catch (error: any) {
       toast.error(error?.message || "Failed to send notifications");
     } finally {
@@ -235,7 +166,7 @@ export default function NotificationsPage() {
     switch (type) {
       case "order":
         return <Package size={18} className="text-blue-600" />;
-      case "payment":
+      case "approval":
         return <CreditCard size={18} className="text-green-600" />;
       case "system":
         return <AlertCircle size={18} className="text-yellow-600" />;
@@ -248,7 +179,7 @@ export default function NotificationsPage() {
     switch (type) {
       case "order":
         return "bg-blue-100 text-blue-700 border-blue-200";
-      case "payment":
+      case "approval":
         return "bg-green-100 text-green-700 border-green-200";
       case "system":
         return "bg-yellow-100 text-yellow-700 border-yellow-200";
@@ -302,7 +233,7 @@ export default function NotificationsPage() {
   const adminCount = users.filter((u) => u.role === "admin").length;
   const customerCount = users.filter((u) => u.role === "customer").length;
 
-  if (loading) {
+  if (loading && notifications.length === 0) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -418,11 +349,11 @@ export default function NotificationsPage() {
           >
             <option value="all">All Types</option>
             <option value="order">Orders</option>
-            <option value="payment">Payments</option>
+            <option value="approval">Approval</option>
             <option value="system">System</option>
           </select>
           <button
-            onClick={fetchNotifications}
+            onClick={() => dispatch(fetchNotifications())}
             className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-2"
           >
             <RefreshCw size={16} />
@@ -504,7 +435,7 @@ export default function NotificationsPage() {
                             {notification.type === "order" && (
                               <Package size={10} />
                             )}
-                            {notification.type === "payment" && (
+                            {notification.type === "approval" && (
                               <CreditCard size={10} />
                             )}
                             {notification.type === "system" && (
@@ -591,7 +522,7 @@ export default function NotificationsPage() {
             >
               <option value="system">System</option>
               <option value="order">Order</option>
-              <option value="payment">Payment</option>
+              <option value="approval">Approval</option>
             </select>
           </div>
           <div>
@@ -731,7 +662,7 @@ export default function NotificationsPage() {
             >
               <option value="system">System</option>
               <option value="order">Order</option>
-              <option value="payment">Payment</option>
+              <option value="approval">Approval</option>
             </select>
           </div>
           <div>

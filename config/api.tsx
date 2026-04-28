@@ -491,7 +491,7 @@ class API {
   }
 
   async markNotificationAsRead(notificationId: string): Promise<void> {
-    return this.request(`/users/notifications/${notificationId}`, {
+    await this.request(`/users/notifications/${notificationId}`, {
       method: "PUT",
     });
   }
