@@ -1,6 +1,9 @@
 // src/components/dashboard/DashboardStats.tsx
 "use client";
 
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchDashboardStats } from "@/store/slices/dashboardSlice";
 import {
   DollarSign,
   ShoppingCart,
@@ -18,23 +21,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
-
-interface DashboardStatsProps {
-  data: {
-    today: { sales: number; orders: number; items: number };
-    this_week: { sales: number; orders: number; items: number };
-    this_month: { sales: number; orders: number; items: number };
-    this_year: { sales: number; orders: number; items: number };
-    lifetime: {
-      sales: number;
-      orders: number;
-      customers: number;
-      products_sold: number;
-    };
-    growth: { daily: number; weekly: number; monthly: number; yearly: number };
-  };
-  loading?: boolean;
-}
 
 // Skeleton Loader Component
 const StatsSkeleton = () => (
@@ -76,17 +62,24 @@ const StatsSkeleton = () => (
   </div>
 );
 
-export default function DashboardStats({ data, loading }: DashboardStatsProps) {
+export default function DashboardStats() {
+  const dispatch = useAppDispatch();
+  const { statsData, loading } = useAppSelector((state) => state.dashboard);
   const currencySymbol = "৳";
 
-  // Memoize period stats to prevent unnecessary recalculations
+  useEffect(() => {
+    if (!statsData) {
+      dispatch(fetchDashboardStats());
+    }
+  }, [dispatch, statsData]);
+
   const periodStats = [
     {
       title: "Today",
-      revenue: data?.today?.sales || 0,
-      orders: data?.today?.orders || 0,
-      items: data?.today?.items || 0,
-      growth: data?.growth?.daily || 0,
+      revenue: statsData?.today?.sales || 0,
+      orders: statsData?.today?.orders || 0,
+      items: statsData?.today?.items || 0,
+      growth: statsData?.growth?.daily || 0,
       icon: Zap,
       gradient: "from-orange-500 to-red-500",
       bgGradient: "from-orange-50 to-red-50",
@@ -94,10 +87,10 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
     },
     {
       title: "This Week",
-      revenue: data?.this_week?.sales || 0,
-      orders: data?.this_week?.orders || 0,
-      items: data?.this_week?.items || 0,
-      growth: data?.growth?.weekly || 0,
+      revenue: statsData?.this_week?.sales || 0,
+      orders: statsData?.this_week?.orders || 0,
+      items: statsData?.this_week?.items || 0,
+      growth: statsData?.growth?.weekly || 0,
       icon: Calendar,
       gradient: "from-blue-500 to-cyan-500",
       bgGradient: "from-blue-50 to-cyan-50",
@@ -105,10 +98,10 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
     },
     {
       title: "This Month",
-      revenue: data?.this_month?.sales || 0,
-      orders: data?.this_month?.orders || 0,
-      items: data?.this_month?.items || 0,
-      growth: data?.growth?.monthly || 0,
+      revenue: statsData?.this_month?.sales || 0,
+      orders: statsData?.this_month?.orders || 0,
+      items: statsData?.this_month?.items || 0,
+      growth: statsData?.growth?.monthly || 0,
       icon: BarChart3,
       gradient: "from-purple-500 to-pink-500",
       bgGradient: "from-purple-50 to-pink-50",
@@ -116,10 +109,10 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
     },
     {
       title: "This Year",
-      revenue: data?.this_year?.sales || 0,
-      orders: data?.this_year?.orders || 0,
-      items: data?.this_year?.items || 0,
-      growth: data?.growth?.yearly || 0,
+      revenue: statsData?.this_year?.sales || 0,
+      orders: statsData?.this_year?.orders || 0,
+      items: statsData?.this_year?.items || 0,
+      growth: statsData?.growth?.yearly || 0,
       icon: Activity,
       gradient: "from-emerald-500 to-teal-500",
       bgGradient: "from-emerald-50 to-teal-50",
@@ -130,7 +123,7 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
   const lifetimeStats = [
     {
       label: "Lifetime Revenue",
-      value: data?.lifetime?.sales || 0,
+      value: statsData?.lifetime?.sales || 0,
       icon: DollarSign,
       gradient: "from-green-500 to-emerald-500",
       bgGradient: "from-green-50 to-emerald-50",
@@ -139,7 +132,7 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
     },
     {
       label: "Total Orders",
-      value: data?.lifetime?.orders || 0,
+      value: statsData?.lifetime?.orders || 0,
       icon: ShoppingCart,
       gradient: "from-blue-500 to-indigo-500",
       bgGradient: "from-blue-50 to-indigo-50",
@@ -148,7 +141,7 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
     },
     {
       label: "Total Customers",
-      value: data?.lifetime?.customers || 0,
+      value: statsData?.lifetime?.customers || 0,
       icon: Users,
       gradient: "from-purple-500 to-violet-500",
       bgGradient: "from-purple-50 to-violet-50",
@@ -157,7 +150,7 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
     },
     {
       label: "Products Sold",
-      value: data?.lifetime?.products_sold || 0,
+      value: statsData?.lifetime?.products_sold || 0,
       icon: Package,
       gradient: "from-orange-500 to-amber-500",
       bgGradient: "from-orange-50 to-amber-50",
@@ -166,7 +159,7 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
     },
   ];
 
-  if (loading) {
+  if (loading && !statsData) {
     return <StatsSkeleton />;
   }
 
@@ -259,7 +252,7 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
                     <div
                       className={`h-full rounded-full bg-gradient-to-r ${stat.gradient} transition-all duration-500`}
                       style={{
-                        width: `${Math.min(100, (stat.revenue / (data?.this_year?.sales || 1)) * 100)}%`,
+                        width: `${Math.min(100, (stat.revenue / (statsData?.this_year?.sales || 1)) * 100)}%`,
                       }}
                     />
                   </div>
@@ -355,10 +348,19 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
           <p className="text-2xl font-bold text-blue-600">
             {(() => {
               const periods = [
-                { name: "Today", revenue: data?.today?.sales || 0 },
-                { name: "This Week", revenue: data?.this_week?.sales || 0 },
-                { name: "This Month", revenue: data?.this_month?.sales || 0 },
-                { name: "This Year", revenue: data?.this_year?.sales || 0 },
+                { name: "Today", revenue: statsData?.today?.sales || 0 },
+                {
+                  name: "This Week",
+                  revenue: statsData?.this_week?.sales || 0,
+                },
+                {
+                  name: "This Month",
+                  revenue: statsData?.this_month?.sales || 0,
+                },
+                {
+                  name: "This Year",
+                  revenue: statsData?.this_year?.sales || 0,
+                },
               ];
               const best = periods.reduce(
                 (max, p) => (p.revenue > max.revenue ? p : max),
@@ -380,9 +382,10 @@ export default function DashboardStats({ data, loading }: DashboardStatsProps) {
           </div>
           <p className="text-2xl font-bold text-purple-600">
             {currencySymbol}
-            {data?.lifetime?.orders && data?.lifetime?.orders > 0
+            {statsData?.lifetime?.orders && statsData?.lifetime?.orders > 0
               ? (
-                  (data?.lifetime?.sales || 0) / (data?.lifetime?.orders || 1)
+                  (statsData?.lifetime?.sales || 0) /
+                  (statsData?.lifetime?.orders || 1)
                 ).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,

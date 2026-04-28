@@ -89,12 +89,71 @@ export interface Payment {
   paidAt: string | null;
 }
 
+// Add these interfaces to your services/api.ts
+
+export interface DailySalesData {
+  date: string;
+  sales: number;
+  orders: number;
+}
+
+export interface WeeklySalesData {
+  week: string;
+  sales: number;
+  orders: number;
+}
+
+export interface MonthlySalesData {
+  month: string;
+  sales: number;
+  orders: number;
+}
+
+export interface SalesSummaryData {
+  overall_summary: {
+    totalSales: number;
+    totalOrders: number;
+    averageOrderValue: number;
+    totalItemsSold: number;
+    totalDiscounts: number;
+    totalCustomers: number;
+    topProducts: Array<{
+      id: string;
+      name: string;
+      price: string;
+      images: Array<{ url: string }>;
+      totalSold: number;
+    }>;
+    topCategories: Array<{
+      id: string;
+      name: string;
+      totalSold: number;
+    }>;
+  };
+  growth_percentage: {
+    daily: number;
+    weekly: number;
+    monthly: number;
+    yearly: number;
+  };
+  sales_by_status: Array<{
+    status: string;
+    totalSales: number;
+    totalOrders: number;
+  }>;
+}
+
 export interface SalesSummary {
   totalRevenue: number;
   totalOrders: number;
   averageOrderValue: number;
   totalCustomers: number;
   totalProducts: number;
+}
+
+export interface TopProduct extends Product {
+  totalSold: number;
+  totalRevenue: number;
 }
 
 // Add after SalesSummary interface
@@ -682,11 +741,14 @@ class API {
   }
 
   // ==================== SALES & REPORTS ====================
-  async getSalesSummary(): Promise<SalesSummary> {
-    return this.request("/sales/summary");
-  }
 
-  async getTopProducts(limit: number = 10): Promise<any[]> {
+  // async getTopProducts(limit: number = 10): Promise<any[]> {
+  //   const data = await this.request(`/sales/top-products?limit=${limit}`);
+  //   return Array.isArray(data) ? data : [];
+  // }
+
+  // Update the getTopProducts method return type
+  async getTopProducts(limit: number = 10): Promise<TopProduct[]> {
     const data = await this.request(`/sales/top-products?limit=${limit}`);
     return Array.isArray(data) ? data : [];
   }
@@ -696,21 +758,25 @@ class API {
     return data as DashboardData;
   }
 
-  async getDailySales(): Promise<any[]> {
+  // Update the method signatures in your API class
+  async getDailySales(): Promise<DailySalesData[]> {
     const data = await this.request("/sales/daily");
     return Array.isArray(data) ? data : [];
   }
 
-  async getWeeklySales(): Promise<any[]> {
+  async getWeeklySales(): Promise<WeeklySalesData[]> {
     const data = await this.request("/sales/weekly");
     return Array.isArray(data) ? data : [];
   }
 
-  async getMonthlySales(): Promise<any[]> {
+  async getMonthlySales(): Promise<MonthlySalesData[]> {
     const data = await this.request("/sales/monthly");
     return Array.isArray(data) ? data : [];
   }
 
+  async getSalesSummary(): Promise<SalesSummaryData> {
+    return this.request("/sales/summary");
+  }
   async exportSalesData(format: "csv" | "pdf" = "csv") {
     const token = this.getToken();
     const response = await fetch(

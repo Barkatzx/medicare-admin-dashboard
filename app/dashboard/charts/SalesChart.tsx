@@ -1,3 +1,4 @@
+// src/components/dashboard/SalesChart.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,7 +18,8 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { api } from "@/config/api";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchSalesData, fetchSalesSummary } from "@/store/slices/salesSlice";
 import {
   TrendingUp,
   Loader2,
@@ -25,7 +27,6 @@ import {
   ShoppingCart,
   Package,
   Users,
-  Award,
   BarChart3,
   PieChart as PieChartIcon,
   Percent,
@@ -41,38 +42,52 @@ interface CustomTooltipProps {
   period: Period;
 }
 
+interface SalesDataItem {
+  date?: string;
+  week?: string;
+  month?: string;
+  sales: number;
+  orders: number;
+}
+
+interface StatusItem {
+  status: string;
+  totalSales: number;
+  totalOrders: number;
+}
+
+interface TopCategory {
+  id: string;
+  name: string;
+  totalSold: number;
+}
+
+interface OverallSummary {
+  totalSales: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  totalItemsSold: number;
+  totalDiscounts: number;
+  totalCustomers: number;
+  topProducts: Array<{
+    id: string;
+    name: string;
+    price: string;
+    images: Array<{ url: string }>;
+    totalSold: number;
+  }>;
+  topCategories: TopCategory[];
+}
+
 interface SalesSummary {
-  overall_summary: {
-    totalSales: number;
-    totalOrders: number;
-    averageOrderValue: number;
-    totalItemsSold: number;
-    totalDiscounts: number;
-    totalCustomers: number;
-    topProducts: Array<{
-      id: string;
-      name: string;
-      price: string;
-      images: Array<{ url: string }>;
-      totalSold: number;
-    }>;
-    topCategories: Array<{
-      id: string;
-      name: string;
-      totalSold: number;
-    }>;
-  };
+  overall_summary: OverallSummary;
   growth_percentage: {
     daily: number;
     weekly: number;
     monthly: number;
     yearly: number;
   };
-  sales_by_status: Array<{
-    status: string;
-    totalSales: number;
-    totalOrders: number;
-  }>;
+  sales_by_status: StatusItem[];
 }
 
 const CustomTooltip = ({
@@ -126,52 +141,25 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function SalesChart() {
-  const [data, setData] = useState<any[]>([]);
+  const dispatch = useAppDispatch();
+  const { salesData, salesSummary, loading, summaryLoading } = useAppSelector(
+    (state) => state.sales,
+  );
   const [period, setPeriod] = useState<Period>("daily");
-  const [loading, setLoading] = useState(true);
   const [chartType, setChartType] = useState<"area" | "line">("area");
-  const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
   const [view, setView] = useState<"chart" | "summary">("chart");
 
   useEffect(() => {
-    fetchData();
-    fetchSalesSummary();
-  }, [period]);
+    dispatch(fetchSalesData(period));
+  }, [dispatch, period]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      let salesData;
-      switch (period) {
-        case "daily":
-          salesData = await api.getDailySales();
-          break;
-        case "weekly":
-          salesData = await api.getWeeklySales();
-          break;
-        case "monthly":
-          salesData = await api.getMonthlySales();
-          break;
-      }
-      setData(Array.isArray(salesData) ? salesData : []);
-    } catch (error) {
-      console.error("Failed to fetch sales data:", error);
-      setData([]);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!salesSummary) {
+      dispatch(fetchSalesSummary());
     }
-  };
+  }, [dispatch, salesSummary]);
 
-  const fetchSalesSummary = async () => {
-    try {
-      const summary = await api.getSalesSummary();
-      setSalesSummary(summary as unknown as SalesSummary);
-    } catch (error) {
-      console.error("Failed to fetch sales summary:", error);
-    }
-  };
-
-  const getXAxisKey = () => {
+  const getXAxisKey = (): string => {
     switch (period) {
       case "daily":
         return "date";
@@ -184,24 +172,36 @@ export default function SalesChart() {
     }
   };
 
-  const totalRevenue = data.reduce((sum, item) => sum + (item.sales || 0), 0);
-  const totalOrders = data.reduce((sum, item) => sum + (item.orders || 0), 0);
-  const averageRevenue = data.length > 0 ? totalRevenue / data.length : 0;
-  const bestDay = data.reduce(
-    (best, item) => ((item.sales || 0) > (best.sales || 0) ? item : best),
-    { sales: 0, [getXAxisKey()]: "" },
+  const currentData: SalesDataItem[] = salesData[period] || [];
+  const totalRevenue = currentData.reduce(
+    (sum: number, item: SalesDataItem) => sum + (item.sales || 0),
+    0,
+  );
+  const totalOrders = currentData.reduce(
+    (sum: number, item: SalesDataItem) => sum + (item.orders || 0),
+    0,
+  );
+  const averageRevenue =
+    currentData.length > 0 ? totalRevenue / currentData.length : 0;
+
+  const bestDay = currentData.reduce(
+    (best: SalesDataItem, item: SalesDataItem) =>
+      (item.sales || 0) > (best.sales || 0) ? item : best,
+    { sales: 0, orders: 0 } as SalesDataItem,
   );
 
   const pieData =
     salesSummary?.sales_by_status
-      ?.filter((item) => item.totalSales > 0 || item.totalOrders > 0)
-      .map((item) => ({
+      ?.filter(
+        (item: StatusItem) => item.totalSales > 0 || item.totalOrders > 0,
+      )
+      .map((item: StatusItem) => ({
         name: item.status,
         value: item.totalSales,
         orders: item.totalOrders,
       })) || [];
 
-  if (loading) {
+  if (loading && !salesData[period]?.length) {
     return (
       <div className="h-80 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
         <Loader2 size={32} className="text-blue-500 animate-spin mb-3" />
@@ -320,7 +320,7 @@ export default function SalesChart() {
           <div className="bg-white rounded-xl p-4 border border-gray-100">
             <ResponsiveContainer width="100%" height={350}>
               {chartType === "area" ? (
-                <AreaChart data={data}>
+                <AreaChart data={currentData}>
                   <defs>
                     <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
@@ -371,7 +371,7 @@ export default function SalesChart() {
                   />
                 </AreaChart>
               ) : (
-                <ComposedChart data={data}>
+                <ComposedChart data={currentData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey={getXAxisKey()}
@@ -419,7 +419,6 @@ export default function SalesChart() {
             </ResponsiveContainer>
           </div>
 
-          {/* Legend */}
           <div className="flex items-center justify-center gap-6 pt-2">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
@@ -520,7 +519,7 @@ export default function SalesChart() {
             </div>
           </div>
 
-          {/* Growth Section — fixed from broken plain-text if statement */}
+          {/* Growth Section */}
           {salesSummary?.growth_percentage && (
             <div className="bg-white rounded-xl p-4 border border-gray-100">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -530,7 +529,7 @@ export default function SalesChart() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {Object.entries(salesSummary.growth_percentage).map(
                   ([key, value]) => {
-                    const isPositive = value >= 0;
+                    const isPositive = (value as number) >= 0;
                     return (
                       <div
                         key={key}
@@ -540,12 +539,10 @@ export default function SalesChart() {
                           {key}
                         </p>
                         <p
-                          className={`text-lg font-bold ${
-                            isPositive ? "text-green-600" : "text-red-600"
-                          }`}
+                          className={`text-lg font-bold ${isPositive ? "text-green-600" : "text-red-600"}`}
                         >
                           {isPositive ? "+" : ""}
-                          {value}%
+                          {value as number}%
                         </p>
                       </div>
                     );
@@ -574,81 +571,90 @@ export default function SalesChart() {
                         outerRadius={80}
                         paddingAngle={5}
                         dataKey="value"
-                        label={({ name, percent }) =>
-                          `${name}: ${(percent * 100).toFixed(0)}%`
-                        }
+                        label={({
+                          name,
+                          percent,
+                        }: {
+                          name: string;
+                          percent: number;
+                        }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                         labelLine={false}
                       >
-                        {pieData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={STATUS_COLORS[entry.name] || "#9ca3af"}
-                          />
-                        ))}
+                        {pieData.map(
+                          (entry: { name: string }, index: number) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={STATUS_COLORS[entry.name] || "#9ca3af"}
+                            />
+                          ),
+                        )}
                       </Pie>
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="space-y-2">
-                  {pieData.map((item) => (
-                    <div
-                      key={item.name}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{
-                            backgroundColor:
-                              STATUS_COLORS[item.name] || "#9ca3af",
-                          }}
-                        />
-                        <span className="text-sm font-medium text-gray-700 capitalize">
-                          {item.name}
-                        </span>
+                  {pieData.map(
+                    (item: { name: string; value: number; orders: number }) => (
+                      <div
+                        key={item.name}
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{
+                              backgroundColor:
+                                STATUS_COLORS[item.name] || "#9ca3af",
+                            }}
+                          />
+                          <span className="text-sm font-medium text-gray-700 capitalize">
+                            {item.name}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-gray-900">
+                            ৳{item.value.toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {item.orders} orders
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-gray-900">
-                          ৳{item.value.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {item.orders} orders
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
             </div>
           )}
 
           {/* Top Categories */}
-          {(salesSummary?.overall_summary?.topCategories?.length ?? 0) > 0 && (
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Package size={18} className="text-purple-600" />
-                Top Categories
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {salesSummary!.overall_summary.topCategories.map(
-                  (category, idx) => (
-                    <div
-                      key={category.id}
-                      className="flex items-center justify-between p-3 bg-purple-50 rounded-lg"
-                    >
-                      <span className="text-sm font-medium text-gray-900">
-                        {category.name}
-                      </span>
-                      <span className="text-sm font-semibold text-purple-600">
-                        {category.totalSold} units
-                      </span>
-                    </div>
-                  ),
-                )}
+          {salesSummary?.overall_summary?.topCategories &&
+            salesSummary.overall_summary.topCategories.length > 0 && (
+              <div className="bg-white rounded-xl p-4 border border-gray-100">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Package size={18} className="text-purple-600" />
+                  Top Categories
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {salesSummary.overall_summary.topCategories.map(
+                    (category: TopCategory) => (
+                      <div
+                        key={category.id}
+                        className="flex items-center justify-between p-3 bg-purple-50 rounded-lg"
+                      >
+                        <span className="text-sm font-medium text-gray-900">
+                          {category.name}
+                        </span>
+                        <span className="text-sm font-semibold text-purple-600">
+                          {category.totalSold} units
+                        </span>
+                      </div>
+                    ),
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
       )}
     </div>

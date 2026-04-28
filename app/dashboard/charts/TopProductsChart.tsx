@@ -1,3 +1,4 @@
+// src/components/dashboard/TopProductsChart.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -11,7 +12,9 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
-import { api } from "@/config/api";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchTopProducts } from "@/store/slices/productSlice";
+import type { TopProduct } from "@/config/api";
 import {
   Package,
   TrendingUp,
@@ -19,27 +22,28 @@ import {
   Star,
   Award,
   Eye,
-  Image as ImageIcon,
   Tag,
   Layers,
   DollarSign,
   ShoppingCart,
+  Image as ImageIcon,
 } from "lucide-react";
-import Image from "next/image";
 
-interface Product {
-  id: string;
+// Default image placeholder - you can replace this URL with your own default image
+const DEFAULT_IMAGE_FALLBACK =
+  "https://dkohdjvtnkzhmpvxmwtg.supabase.co/storage/v1/object/public/medicare-images/products/default-product-placeholder.webp";
+
+interface ChartDataItem {
   name: string;
-  description: string;
-  price: string;
-  discountedPrice: string | null;
-  discountPercent: number | null;
-  stock: number;
-  categoryId: string;
-  images: Array<{ id: string; url: string; altText: string | null }>;
-  category: { id: string; name: string; description: string | null };
-  totalSold: number;
   totalRevenue: number;
+  totalSold: number;
+  price: number;
+  discountedPrice: number | null;
+  stock: number;
+  category: string;
+  imageUrl: string | undefined;
+  originalProduct: TopProduct;
+  rank: number;
 }
 
 interface CustomTooltipProps {
@@ -50,23 +54,22 @@ interface CustomTooltipProps {
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
-    const data = payload[0]?.payload;
+    const data = payload[0]?.payload as ChartDataItem;
+    const imageUrl = data?.imageUrl || DEFAULT_IMAGE_FALLBACK;
+
     return (
       <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-4 min-w-[260px]">
         <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-          {data?.imageUrl ? (
-            <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100">
-              <img
-                src={data.imageUrl}
-                alt={data.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Package size={14} className="text-blue-600" />
-            </div>
-          )}
+          <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+            <img
+              src={imageUrl}
+              alt={data?.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = DEFAULT_IMAGE_FALLBACK;
+              }}
+            />
+          </div>
           <div>
             <p className="text-sm font-semibold text-gray-900">{label}</p>
             <p className="text-xs text-gray-500">{data?.category}</p>
@@ -115,7 +118,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
             <div className="flex items-center justify-between gap-4">
               <span className="text-xs text-gray-500">Stock Remaining</span>
               <span
-                className={`text-xs font-medium ${data?.stock <= 10 ? "text-red-600" : "text-gray-700"}`}
+                className={`text-xs font-medium ${(data?.stock || 0) <= 10 ? "text-red-600" : "text-gray-700"}`}
               >
                 {data?.stock || 0} units
               </span>
@@ -143,53 +146,68 @@ const colors = [
 ];
 
 export default function TopProductsChart() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+  const { topProducts, topProductsLoading } = useAppSelector(
+    (state) => state.products,
+  );
   const [chartType, setChartType] = useState<"revenue" | "units">("revenue");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<TopProduct | null>(
+    null,
+  );
   const [showDetails, setShowDetails] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await api.getTopProducts(10);
-        setProducts(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error("Failed to fetch top products:", error);
-        setProducts([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+    if (!topProducts.length) {
+      dispatch(fetchTopProducts(10));
+    }
+  }, [dispatch, topProducts.length]);
 
-  const handleProductClick = (product: Product) => {
+  const handleProductClick = (product: TopProduct) => {
     setSelectedProduct(product);
     setShowDetails(true);
   };
 
+  const handleImageError = (productId: string) => {
+    setImageErrors((prev) => ({ ...prev, [productId]: true }));
+  };
+
+  const getProductImageUrl = (product: TopProduct) => {
+    if (imageErrors[product.id]) {
+      return DEFAULT_IMAGE_FALLBACK;
+    }
+    if (product.images?.[0]?.url) {
+      return product.images[0].url;
+    }
+    return DEFAULT_IMAGE_FALLBACK;
+  };
+
   // Prepare chart data with additional info
-  const chartData = products.map((product, index) => ({
+  const chartData: ChartDataItem[] = topProducts.map((product, index) => ({
     name: product.name,
     totalRevenue: product.totalRevenue,
     totalSold: product.totalSold,
-    price: parseFloat(product.price),
+    price:
+      typeof product.price === "string"
+        ? parseFloat(product.price)
+        : product.price,
     discountedPrice: product.discountedPrice
-      ? parseFloat(product.discountedPrice)
+      ? typeof product.discountedPrice === "string"
+        ? parseFloat(product.discountedPrice)
+        : product.discountedPrice
       : null,
     stock: product.stock,
     category: product.category?.name || "Uncategorized",
-    imageUrl: product.images?.[0]?.url,
+    imageUrl: getProductImageUrl(product),
     originalProduct: product,
     rank: index + 1,
   }));
 
-  const totalRevenue = products.reduce((sum, p) => sum + p.totalRevenue, 0);
-  const totalUnits = products.reduce((sum, p) => sum + p.totalSold, 0);
-  const topProduct = products[0];
+  const totalRevenue = topProducts.reduce((sum, p) => sum + p.totalRevenue, 0);
+  const totalUnits = topProducts.reduce((sum, p) => sum + p.totalSold, 0);
+  const topProduct = topProducts[0];
 
-  if (loading) {
+  if (topProductsLoading && !topProducts.length) {
     return (
       <div className="h-80 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
         <Loader2 size={32} className="text-blue-500 animate-spin mb-3" />
@@ -198,7 +216,7 @@ export default function TopProductsChart() {
     );
   }
 
-  if (products.length === 0) {
+  if (topProducts.length === 0) {
     return (
       <div className="h-80 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
         <Package size={32} className="text-gray-400 mb-3" />
@@ -214,7 +232,7 @@ export default function TopProductsChart() {
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3">
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs text-gray-600">
-              Total Revenue (Top {products.length})
+              Total Revenue (Top {topProducts.length})
             </p>
             <TrendingUp size={12} className="text-blue-600" />
           </div>
@@ -291,7 +309,7 @@ export default function TopProductsChart() {
               tickLine={false}
               axisLine={false}
               width={95}
-              tick={(props) => {
+              tick={(props: any) => {
                 const { x, y, payload } = props;
                 const item = chartData.find((d) => d.name === payload.value);
                 const rank = item?.rank;
@@ -330,7 +348,7 @@ export default function TopProductsChart() {
               onClick={(data) => handleProductClick(data.originalProduct)}
               cursor="pointer"
             >
-              {chartData.map((entry, index) => (
+              {chartData.map((_, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={
@@ -359,19 +377,14 @@ export default function TopProductsChart() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            {topProduct.images?.[0]?.url ? (
-              <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                <img
-                  src={topProduct.images[0].url}
-                  alt={topProduct.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Package size={20} className="text-amber-600" />
-              </div>
-            )}
+            <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+              <img
+                src={getProductImageUrl(topProduct)}
+                alt={topProduct.name}
+                className="w-full h-full object-cover"
+                onError={() => handleImageError(topProduct.id)}
+              />
+            </div>
             <div className="flex-1">
               <p className="font-medium text-gray-900">{topProduct.name}</p>
               <p className="text-xs text-gray-500">
@@ -412,21 +425,16 @@ export default function TopProductsChart() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              {/* Product Header */}
+              {/* Product Header with Default Image Support */}
               <div className="flex items-start gap-4">
-                {selectedProduct.images?.[0]?.url ? (
-                  <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-                    <img
-                      src={selectedProduct.images[0].url}
-                      alt={selectedProduct.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-20 h-20 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <Package size={28} className="text-blue-600" />
-                  </div>
-                )}
+                <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                  <img
+                    src={getProductImageUrl(selectedProduct)}
+                    alt={selectedProduct.name}
+                    className="w-full h-full object-cover"
+                    onError={() => handleImageError(selectedProduct.id)}
+                  />
+                </div>
                 <div className="flex-1">
                   <h4 className="text-xl font-bold text-gray-900">
                     {selectedProduct.name}
@@ -474,7 +482,11 @@ export default function TopProductsChart() {
                       Original Price
                     </span>
                     <span className="text-sm font-medium text-gray-900">
-                      ৳{parseFloat(selectedProduct.price).toLocaleString()}
+                      ৳
+                      {(typeof selectedProduct.price === "string"
+                        ? parseFloat(selectedProduct.price)
+                        : selectedProduct.price
+                      ).toLocaleString()}
                     </span>
                   </div>
                   {selectedProduct.discountedPrice && (
@@ -484,8 +496,9 @@ export default function TopProductsChart() {
                       </span>
                       <span className="text-sm font-medium text-green-600">
                         ৳
-                        {parseFloat(
-                          selectedProduct.discountedPrice,
+                        {(typeof selectedProduct.discountedPrice === "string"
+                          ? parseFloat(selectedProduct.discountedPrice)
+                          : selectedProduct.discountedPrice
                         ).toLocaleString()}
                       </span>
                     </div>
@@ -509,14 +522,14 @@ export default function TopProductsChart() {
                 </div>
               </div>
 
-              {/* Product Images */}
+              {/* Product Images with Default Fallback */}
               {selectedProduct.images && selectedProduct.images.length > 0 && (
                 <div className="bg-gray-50 rounded-xl p-4">
                   <h5 className="font-semibold text-gray-900 mb-3">
                     Product Images
                   </h5>
                   <div className="grid grid-cols-3 gap-2">
-                    {selectedProduct.images.map((img, idx) => (
+                    {selectedProduct.images.map((img) => (
                       <div
                         key={img.id}
                         className="aspect-square rounded-lg overflow-hidden bg-gray-100"
@@ -525,6 +538,10 @@ export default function TopProductsChart() {
                           src={img.url}
                           alt={img.altText || selectedProduct.name}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              DEFAULT_IMAGE_FALLBACK;
+                          }}
                         />
                       </div>
                     ))}

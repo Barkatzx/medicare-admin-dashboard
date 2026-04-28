@@ -1,17 +1,21 @@
 // src/store/slices/productSlice.ts
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { api, Product } from "@/config/api";
+import { api, Product, TopProduct } from "@/config/api";
 import toast from "react-hot-toast";
 
 interface ProductState {
   products: Product[];
+  topProducts: TopProduct[];
   loading: boolean;
+  topProductsLoading: boolean;
   error: string | null;
 }
 
 const initialState: ProductState = {
   products: [],
+  topProducts: [],
   loading: false,
+  topProductsLoading: false,
   error: null,
 };
 
@@ -75,12 +79,21 @@ export const uploadProductImages = createAsyncThunk(
   },
 );
 
+export const fetchTopProducts = createAsyncThunk(
+  "products/fetchTop",
+  async (limit: number = 10) => {
+    const response = await api.getTopProducts(limit);
+    return response;
+  },
+);
+
 const productSlice = createSlice({
   name: "products",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
+      // Fetch Products
       .addCase(fetchProducts.pending, (state) => {
         state.loading = true;
       })
@@ -93,6 +106,7 @@ const productSlice = createSlice({
         state.error = action.error.message || "Failed to fetch products";
         toast.error("Failed to fetch products");
       })
+      // Create Product
       .addCase(createProduct.pending, (state) => {
         state.loading = true;
       })
@@ -105,6 +119,7 @@ const productSlice = createSlice({
         state.loading = false;
         toast.error(action.error.message || "Failed to create product");
       })
+      // Update Product
       .addCase(updateProduct.pending, (state) => {
         state.loading = true;
       })
@@ -122,6 +137,7 @@ const productSlice = createSlice({
         state.loading = false;
         toast.error(action.error.message || "Failed to update product");
       })
+      // Delete Product
       .addCase(deleteProduct.pending, (state) => {
         state.loading = true;
       })
@@ -134,6 +150,7 @@ const productSlice = createSlice({
         state.loading = false;
         toast.error(action.error.message || "Failed to delete product");
       })
+      // Update Product Stock
       .addCase(updateProductStock.pending, (state) => {
         state.loading = true;
       })
@@ -151,13 +168,12 @@ const productSlice = createSlice({
         state.loading = false;
         toast.error(action.error.message || "Failed to update stock");
       })
-      // Add image upload cases INSIDE the builder
+      // Upload Product Images
       .addCase(uploadProductImages.pending, (state) => {
         state.loading = true;
       })
       .addCase(uploadProductImages.fulfilled, (state, action) => {
         state.loading = false;
-        // Update the product with new images
         const index = state.products.findIndex(
           (p) => p.id === action.payload.productId,
         );
@@ -165,7 +181,6 @@ const productSlice = createSlice({
           if (!state.products[index].images) {
             state.products[index].images = [];
           }
-          // Add new images to existing ones
           const newImages = action.payload.images;
           state.products[index].images = [
             ...(state.products[index].images || []),
@@ -177,6 +192,19 @@ const productSlice = createSlice({
       .addCase(uploadProductImages.rejected, (state, action) => {
         state.loading = false;
         toast.error(action.error.message || "Failed to upload images");
+      })
+      // Fetch Top Products
+      .addCase(fetchTopProducts.pending, (state) => {
+        state.topProductsLoading = true;
+      })
+      .addCase(fetchTopProducts.fulfilled, (state, action) => {
+        state.topProductsLoading = false;
+        state.topProducts = action.payload;
+      })
+      .addCase(fetchTopProducts.rejected, (state, action) => {
+        state.topProductsLoading = false;
+        state.error = action.error.message || "Failed to fetch top products";
+        toast.error("Failed to load top products");
       });
   },
 });
