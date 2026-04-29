@@ -564,15 +564,69 @@ class API {
   }
   // ==================== PRODUCT MANAGEMENT ====================
 
+  // async getAllProducts(
+  //   page: number = 1,
+  //   limit: number = 20,
+  //   search?: string,
+  //   categoryId?: string,
+  // ): Promise<{ products: Product[]; pagination: any }> {
+  //   let url = `/products?page=${page}&limit=${limit}`;
+  //   if (search) url += `&search=${encodeURIComponent(search)}`;
+  //   if (categoryId) url += `&categoryId=${categoryId}`;
+
+  //   const result = await this.request(url);
+
+  //   const data = result?.data ?? result;
+
+  //   if (data && data.products && Array.isArray(data.products)) {
+  //     const p = data.pagination || {};
+  //     return {
+  //       products: data.products,
+  //       pagination: {
+  //         page: p.page ?? page,
+  //         limit: p.limit ?? limit,
+  //         total: p.total ?? data.products.length,
+  //         pages:
+  //           p.totalPages ??
+  //           p.pages ??
+  //           Math.ceil((p.total ?? data.products.length) / limit),
+  //       },
+  //     };
+  //   }
+
+  //   if (Array.isArray(data)) {
+  //     return {
+  //       products: data,
+  //       pagination: {
+  //         page: 1,
+  //         limit: data.length,
+  //         total: data.length,
+  //         pages: 1,
+  //       },
+  //     };
+  //   }
+
+  //   return {
+  //     products: [],
+  //     pagination: { page: 1, limit, total: 0, pages: 0 },
+  //   };
+  // }
   async getAllProducts(
     page: number = 1,
     limit: number = 20,
     search?: string,
     categoryId?: string,
   ): Promise<{ products: Product[]; pagination: any }> {
-    let url = `/products?page=${page}&limit=${limit}`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
-    if (categoryId) url += `&categoryId=${categoryId}`;
+    let url: string;
+
+    // Use dedicated search endpoint when search term is provided
+    if (search && search.trim()) {
+      url = `/products/search?q=${encodeURIComponent(search.trim())}&page=${page}&limit=${limit}`;
+      if (categoryId) url += `&categoryId=${categoryId}`;
+    } else {
+      url = `/products?page=${page}&limit=${limit}`;
+      if (categoryId) url += `&categoryId=${categoryId}`;
+    }
 
     const result = await this.request(url);
 
@@ -594,6 +648,7 @@ class API {
       };
     }
 
+    // Some search endpoints return the array directly
     if (Array.isArray(data)) {
       return {
         products: data,

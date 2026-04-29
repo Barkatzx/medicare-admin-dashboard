@@ -18,6 +18,7 @@ import {
   DollarSign,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import toast from "react-hot-toast";
@@ -42,8 +43,6 @@ export default function ProductsPage() {
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-  const [searchDebounceTimer, setSearchDebounceTimer] =
-    useState<NodeJS.Timeout | null>(null);
 
   // Load products with pagination and filters
   const loadProducts = useCallback(() => {
@@ -66,24 +65,13 @@ export default function ProductsPage() {
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
-  useEffect(() => {
-    console.log("Pagination data:", pagination);
-  }, [pagination]);
-  // Debounced search
-  useEffect(() => {
-    if (searchDebounceTimer) {
-      clearTimeout(searchDebounceTimer);
-    }
 
+  // Reset to page 1 when search term changes
+  useEffect(() => {
     const timer = setTimeout(() => {
-      setCurrentPage(1); // Reset to first page on search
+      setCurrentPage(1);
     }, 500);
-
-    setSearchDebounceTimer(timer);
-
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
+    return () => clearTimeout(timer);
   }, [searchTerm]);
 
   // Reset to page 1 when filter changes
@@ -93,6 +81,11 @@ export default function ProductsPage() {
 
   const handleRefresh = () => {
     loadProducts();
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setCurrentPage(1);
   };
 
   const confirmDelete = (id: string) => {
@@ -105,7 +98,7 @@ export default function ProductsPage() {
     try {
       await dispatch(deleteProduct(productToDelete)).unwrap();
       toast.success("Product deleted successfully");
-      loadProducts(); // Refresh the list
+      loadProducts();
     } catch (error: any) {
       toast.error(error?.message || "Failed to delete product");
     } finally {
@@ -124,7 +117,7 @@ export default function ProductsPage() {
     setIsStockModalOpen(true);
   };
 
-  // Calculate stats from current products (or you can have a separate API for global stats)
+  // Calculate stats
   const lowStockCount = products.filter((p: any) => p.stock <= 20).length;
   const totalValue = products.reduce((sum: number, p: any) => {
     const productPrice = p.discountedPrice || p.price;
@@ -155,7 +148,7 @@ export default function ProductsPage() {
       bgGradient: "from-red-50 to-rose-50",
     },
     {
-      label: "Inventory Value (Current Page)",
+      label: "Inventory Value",
       value: `৳${totalValue.toLocaleString()}`,
       icon: DollarSign,
       color: "from-emerald-500 to-teal-600",
@@ -176,7 +169,6 @@ export default function ProductsPage() {
     return null;
   };
 
-  // Generate page numbers for pagination
   const getPageNumbers = () => {
     if (!pagination?.pages) return [];
 
@@ -272,7 +264,6 @@ export default function ProductsPage() {
       </div>
 
       {/* Search and Filters */}
-      {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
           <Search
@@ -286,17 +277,56 @@ export default function ProductsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-10 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
           />
-          {/* Clear search button */}
           {searchTerm && (
             <button
-              onClick={() => setSearchTerm("")}
+              onClick={handleClearSearch}
               className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              ✕
+              <X size={18} />
             </button>
           )}
         </div>
+        <select
+          value={filterCategory}
+          onChange={(e) => setFilterCategory(e.target.value)}
+          className="px-5 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+        >
+          <option value="all">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => setShowLowStock(!showLowStock)}
+          className={`px-5 py-3 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2 shadow-sm ${
+            showLowStock
+              ? "bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-200"
+              : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+          }`}
+        >
+          <AlertTriangle size={16} />
+          {showLowStock ? "Show All" : "Low Stock Only"}
+        </button>
       </div>
+
+      {/* Search Info */}
+      {searchTerm && (
+        <div className="flex items-center gap-2 text-sm text-gray-500 bg-blue-50 p-3 rounded-xl">
+          <Search size={14} className="text-blue-600" />
+          <span>
+            Search results for:{" "}
+            <strong className="text-gray-700">"{searchTerm}"</strong>
+          </span>
+          <button
+            onClick={handleClearSearch}
+            className="ml-auto text-blue-600 hover:text-blue-700 text-xs font-medium"
+          >
+            Clear search
+          </button>
+        </div>
+      )}
 
       {/* Products Table */}
       <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
@@ -322,9 +352,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Table with loading overlay */}
         <div className="relative">
-          {/* Loading overlay — shows on pagination change without hiding table */}
           {loading && (
             <div className="absolute inset-0 bg-white/70 backdrop-blur-sm z-10 flex items-center justify-center">
               <div className="flex flex-col items-center gap-3">

@@ -89,9 +89,14 @@ export default function ProductForm({
 
     setRefreshing(true);
     try {
-      // Fetch fresh product data
-      const result = await dispatch(fetchProducts()).unwrap();
-      const updatedProduct = result.find((p: any) => p.id === product.id);
+      const result = await dispatch(
+        fetchProducts({ page: 1, limit: 20 }),
+      ).unwrap();
+
+      // result is { products, pagination }, not an array
+      const updatedProduct = result.products.find(
+        (p: any) => p.id === product.id,
+      );
 
       if (updatedProduct) {
         setExistingImages(updatedProduct.images || []);
@@ -343,8 +348,7 @@ export default function ProductForm({
             );
 
             // Refresh to get updated images
-            await dispatch(fetchProducts()).unwrap();
-
+            await dispatch(fetchProducts({ page: 1, limit: 20 })).unwrap();
             setSelectedImages([]);
             setImagePreviews([]);
           } catch (uploadError: any) {
