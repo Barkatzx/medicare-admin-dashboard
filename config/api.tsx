@@ -777,8 +777,22 @@ class API {
   }
 
   async getDashboardData(): Promise<DashboardData> {
-    const data = await this.request("/sales/dashboard");
-    return data as DashboardData;
+    try {
+      const data = await this.request("/sales/dashboard");
+      return data as DashboardData;
+    } catch (error) {
+      console.error("Dashboard API error, returning fallback data:", error);
+      // Return fallback data instead of throwing
+      return {
+        today: { sales: 0, orders: 0, items: 0 },
+        this_week: { sales: 0, orders: 0, items: 0 },
+        this_month: { sales: 0, orders: 0, items: 0 },
+        this_year: { sales: 0, orders: 0, items: 0 },
+        lifetime: { sales: 0, orders: 0, customers: 0, products_sold: 0 },
+        growth: { daily: 0, weekly: 0, monthly: 0, yearly: 0 },
+        recent_orders: [],
+      };
+    }
   }
 
   // Update the method signatures in your API class
