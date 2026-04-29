@@ -34,9 +34,8 @@ export default function DashboardPage() {
   const { statsData } = useAppSelector((state) => state.dashboard);
 
   useEffect(() => {
-    // Fetch secondary data in background
     Promise.all([
-      dispatch(fetchProducts()).unwrap(),
+      dispatch(fetchProducts({ page: 1, limit: 20 })).unwrap(),
       dispatch(fetchUsers()).unwrap(),
       dispatch(fetchOrders({ page: 1, limit: 10 })).unwrap(),
     ]).catch((err) => console.error("Background fetch error:", err));

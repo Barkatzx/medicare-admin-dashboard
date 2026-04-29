@@ -14,6 +14,13 @@ import {
   Clock,
   Search,
   Users as UsersIcon,
+  UserCheck,
+  UserX,
+  Filter,
+  MoreVertical,
+  Shield,
+  Star,
+  TrendingUp,
 } from "lucide-react";
 
 export default function UsersPage() {
@@ -39,20 +46,17 @@ export default function UsersPage() {
     dispatch(fetchUsers());
   };
 
-  // Filter users based on search and status
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone_number.includes(searchTerm);
-
     const matchesStatus =
       filterStatus === "all"
         ? true
         : filterStatus === "pending"
           ? !user.isApproved && user.role !== "admin"
           : user.isApproved && user.role === "customer";
-
     return matchesSearch && matchesStatus;
   });
 
@@ -63,89 +67,154 @@ export default function UsersPage() {
     (u) => u.isApproved && u.role === "customer",
   );
 
+  const totalUsers = users.length;
+  const totalPending = users.filter(
+    (u) => !u.isApproved && u.role !== "admin",
+  ).length;
+  const totalApproved = users.filter(
+    (u) => u.isApproved && u.role === "customer",
+  ).length;
+  const approvalRate = totalUsers > 0 ? (totalApproved / totalUsers) * 100 : 0;
+
   if (loading && users.length === 0) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading users...</p>
+          <p className="text-gray-500 font-medium">Loading users...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-8 text-white">
+        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl" />
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur">
+                <UsersIcon size={24} className="text-white" />
+              </div>
+              <h1 className="text-3xl font-bold">User Management</h1>
+            </div>
+            <p className="text-gray-300 max-w-xl">
+              Manage and monitor customer accounts, approve registrations, and
+              track user activity across the platform.
+            </p>
+          </div>
+          <Button
+            onClick={handleRefresh}
+            variant="secondary"
+            className="bg-white/10 text-white hover:bg-white/20 border-white/20"
+          >
+            <RefreshCw size={16} className="mr-2" />
+            Refresh
+          </Button>
+        </div>
+      </div>
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-          <div className="flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/0 group-hover:from-blue-50/50 group-hover:to-blue-50/30 transition-all duration-300" />
+          <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Users</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {users.length}
+              <p className="text-sm text-gray-500 font-medium">Total Users</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
+                {totalUsers}
+              </p>
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <TrendingUp size={10} />
+                +12% this month
               </p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <UsersIcon size={20} className="text-blue-600" />
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+              <UsersIcon size={22} className="text-white" />
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-          <div className="flex items-center justify-between">
+
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/0 to-amber-50/0 group-hover:from-amber-50/50 group-hover:to-amber-50/30 transition-all duration-300" />
+          <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Pending Approvals</p>
-              <p className="text-2xl font-bold text-yellow-600 mt-1">
-                {
-                  users.filter((u) => !u.isApproved && u.role !== "admin")
-                    .length
-                }
+              <p className="text-sm text-gray-500 font-medium">
+                Pending Approvals
               </p>
+              <p className="text-3xl font-bold text-amber-600 mt-1">
+                {totalPending}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Awaiting review</p>
             </div>
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <Clock size={20} className="text-yellow-600" />
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+              <Clock size={22} className="text-white" />
             </div>
           </div>
         </div>
-        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-          <div className="flex items-center justify-between">
+
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/0 to-emerald-50/0 group-hover:from-emerald-50/50 group-hover:to-emerald-50/30 transition-all duration-300" />
+          <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Active Customers</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">
-                {
-                  users.filter((u) => u.isApproved && u.role === "customer")
-                    .length
-                }
+              <p className="text-sm text-gray-500 font-medium">
+                Active Customers
+              </p>
+              <p className="text-3xl font-bold text-emerald-600 mt-1">
+                {totalApproved}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Verified accounts</p>
+            </div>
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+              <UserCheck size={22} className="text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-50/0 to-purple-50/0 group-hover:from-purple-50/50 group-hover:to-purple-50/30 transition-all duration-300" />
+          <div className="relative flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Approval Rate</p>
+              <p className="text-3xl font-bold text-purple-600 mt-1">
+                {approvalRate.toFixed(1)}%
+              </p>
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <TrendingUp size={10} />
+                +5.2% vs last month
               </p>
             </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle size={20} className="text-green-600" />
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+              <Shield size={22} className="text-white" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
           <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
             size={18}
           />
           <input
             type="text"
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search by name, email, or phone number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
           />
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setFilterStatus("all")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
               filterStatus === "all"
-                ? "bg-blue-600 text-white"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-200"
                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
             }`}
           >
@@ -153,9 +222,9 @@ export default function UsersPage() {
           </button>
           <button
             onClick={() => setFilterStatus("pending")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
               filterStatus === "pending"
-                ? "bg-yellow-600 text-white"
+                ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-md shadow-amber-200"
                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
             }`}
           >
@@ -163,9 +232,9 @@ export default function UsersPage() {
           </button>
           <button
             onClick={() => setFilterStatus("approved")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
               filterStatus === "approved"
-                ? "bg-green-600 text-white"
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-200"
                 : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
             }`}
           >
@@ -176,30 +245,37 @@ export default function UsersPage() {
 
       {/* Pending Approvals Table */}
       {pendingUsers.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-6 py-2 border-b border-gray-100 bg-yellow-50">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Clock size={20} className="text-yellow-600" />
-              Pending Approvals ({pendingUsers.length})
-            </h2>
+        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-orange-50">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-amber-100 rounded-lg">
+                <Clock size={16} className="text-amber-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Pending Approvals
+              </h2>
+              <span className="px-2.5 py-0.5 bg-amber-200 text-amber-800 text-xs font-medium rounded-full ml-2">
+                {pendingUsers.length}
+              </span>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     User
                   </th>
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Phone
                   </th>
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Action
                   </th>
                 </tr>
@@ -208,12 +284,12 @@ export default function UsersPage() {
                 {pendingUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-gray-50 hover:bg-yellow-50/30 transition-colors"
+                    className="border-b border-gray-50 hover:bg-amber-50/20 transition-colors"
                   >
-                    <td className="py-2 px-6">
+                    <td className="py-3 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                          <span className="text-white font-semibold text-xs">
+                        <div className="w-9 h-9 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-sm">
+                          <span className="text-white font-semibold text-sm">
                             {user.name?.charAt(0) || "U"}
                           </span>
                         </div>
@@ -222,31 +298,31 @@ export default function UsersPage() {
                         </span>
                       </div>
                     </td>
-                    <td className="py-2 px-6">
+                    <td className="py-3 px-6">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Mail size={14} />
+                        <Mail size={14} className="text-gray-400" />
                         <span>{user.email}</span>
                       </div>
                     </td>
-                    <td className="py-2 px-6">
+                    <td className="py-3 px-6">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Phone size={14} />
+                        <Phone size={14} className="text-gray-400" />
                         <span>{user.phone_number}</span>
                       </div>
                     </td>
-                    <td className="py-2 px-6">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-lg">
-                        <Clock size={12} />
+                    <td className="py-3 px-6">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
+                        <Clock size={10} />
                         Pending
                       </span>
                     </td>
-                    <td className="py-2 px-6">
+                    <td className="py-3 px-6">
                       <Button
                         variant="success"
                         size="sm"
                         onClick={() => handleApprove(user.id)}
                         loading={approvingId === user.id}
-                        className="flex items-center gap-2"
+                        className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                       >
                         <CheckCircle size={14} />
                         Approve
@@ -261,36 +337,51 @@ export default function UsersPage() {
       )}
 
       {/* Approved Customers Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-2 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <CheckCircle size={20} className="text-green-600" />
-            Approved Customers ({approvedUsers.length})
-          </h2>
+      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-emerald-100 rounded-lg">
+              <CheckCircle size={16} className="text-emerald-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Approved Customers
+            </h2>
+            <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full ml-2">
+              {approvedUsers.length}
+            </span>
+          </div>
         </div>
 
         {approvedUsers.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <UsersIcon size={24} className="text-gray-400" />
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <UsersIcon size={32} className="text-gray-400" />
             </div>
-            <p className="text-gray-500">No approved customers found</p>
+            <p className="text-gray-500 font-medium">
+              No approved customers found
+            </p>
+            <p className="text-sm text-gray-400 mt-1">
+              New customers will appear here after approval
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     User
                   </th>
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Phone
                   </th>
-                  <th className="text-left py-2 px-6 text-sm font-semibold text-gray-600">
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Joined
+                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                 </tr>
@@ -301,33 +392,50 @@ export default function UsersPage() {
                     key={user.id}
                     className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                   >
-                    <td className="py-2 px-6">
+                    <td className="py-3 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-500 rounded-full flex items-center justify-center">
-                          <span className="text-white font-semibold text-xs">
+                        <div className="w-9 h-9 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-sm">
+                          <span className="text-white font-semibold text-sm">
                             {user.name?.charAt(0) || "U"}
                           </span>
                         </div>
-                        <span className="font-medium text-gray-900">
-                          {user.name || "N/A"}
-                        </span>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {user.name || "N/A"}
+                          </p>
+                          {user.pharmacy_name && (
+                            <p className="text-xs text-gray-500">
+                              {user.pharmacy_name}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td className="py-2 px-6">
+                    <td className="py-3 px-6">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Mail size={14} />
+                        <Mail size={14} className="text-gray-400" />
                         <span>{user.email}</span>
                       </div>
                     </td>
-                    <td className="py-2 px-6">
+                    <td className="py-3 px-6">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Phone size={14} />
+                        <Phone size={14} className="text-gray-400" />
                         <span>{user.phone_number}</span>
                       </div>
                     </td>
-                    <td className="py-2 px-6">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-lg">
-                        <CheckCircle size={12} />
+                    <td className="py-3 px-6">
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar size={14} className="text-gray-400" />
+                        <span>
+                          {user.createdAt
+                            ? new Date(user.createdAt).toLocaleDateString()
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-6">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
+                        <CheckCircle size={10} />
                         Active
                       </span>
                     </td>
@@ -338,6 +446,14 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        @keyframes shimmer {
+          100% {
+            transform: translateX(100%);
+          }
+        }
+      `}</style>
     </div>
   );
 }

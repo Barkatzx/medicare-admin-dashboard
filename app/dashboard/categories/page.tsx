@@ -23,6 +23,9 @@ import {
   Folder,
   AlertCircle,
   Package,
+  Layers,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -44,7 +47,6 @@ export default function CategoriesPage() {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  // Get product count for a category
   const getProductCount = (categoryId: string) => {
     return products.filter((product) => product.categoryId === categoryId)
       .length;
@@ -132,93 +134,140 @@ export default function CategoriesPage() {
     }
   };
 
-  // Filter categories based on search
   const filteredCategories = categories.filter(
     (category) =>
       category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       category.description?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  // Pagination
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
   const paginatedCategories = filteredCategories.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
 
+  const totalProducts = products.length;
+  const categoriesWithProducts = categories.filter(
+    (c) => getProductCount(c.id) > 0,
+  ).length;
+  const emptyCategories = categories.length - categoriesWithProducts;
+
   if (loading && categories.length === 0) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500">Loading categories...</p>
+          <p className="text-gray-500 font-medium">Loading categories...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
-          <p className="text-gray-500 mt-1">Manage your product categories</p>
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-8 text-white">
+        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
+        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl" />
+        <div className="relative flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur">
+                <FolderTree size={24} className="text-white" />
+              </div>
+              <h1 className="text-3xl font-bold">Categories</h1>
+            </div>
+            <p className="text-gray-300 max-w-xl">
+              Organize your products into categories for better management and
+              customer experience.
+            </p>
+          </div>
+          <Button
+            onClick={handleOpenCreateModal}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+          >
+            <Plus size={16} className="mr-2" />
+            Add Category
+          </Button>
         </div>
-        <Button onClick={handleOpenCreateModal} className="gap-2">
-          <Plus size={16} />
-          Add Category
-        </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/0 group-hover:from-blue-50/50 group-hover:to-blue-50/30 transition-all duration-300" />
+          <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Categories</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm text-gray-500 font-medium">
+                Total Categories
+              </p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">
                 {categories.length}
               </p>
             </div>
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Folder size={20} className="text-blue-600" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+              <Folder size={22} className="text-white" />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between">
+
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/0 to-emerald-50/0 group-hover:from-emerald-50/50 group-hover:to-emerald-50/30 transition-all duration-300" />
+          <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Products</p>
-              <p className="text-2xl font-bold text-green-600 mt-1">
-                {products.length}
+              <p className="text-sm text-gray-500 font-medium">
+                Total Products
+              </p>
+              <p className="text-3xl font-bold text-emerald-600 mt-1">
+                {totalProducts}
               </p>
             </div>
-            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-              <Package size={20} className="text-green-600" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+              <Package size={22} className="text-white" />
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-          <div className="flex items-center justify-between">
+
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-50/0 to-purple-50/0 group-hover:from-purple-50/50 group-hover:to-purple-50/30 transition-all duration-300" />
+          <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Without Description</p>
-              <p className="text-2xl font-bold text-yellow-600 mt-1">
-                {categories.filter((c) => !c.description).length}
+              <p className="text-sm text-gray-500 font-medium">
+                Categories with Products
+              </p>
+              <p className="text-3xl font-bold text-purple-600 mt-1">
+                {categoriesWithProducts}
               </p>
             </div>
-            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <AlertCircle size={20} className="text-yellow-600" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+              <Layers size={22} className="text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/0 to-amber-50/0 group-hover:from-amber-50/50 group-hover:to-amber-50/30 transition-all duration-300" />
+          <div className="relative flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 font-medium">
+                Empty Categories
+              </p>
+              <p className="text-3xl font-bold text-amber-600 mt-1">
+                {emptyCategories}
+              </p>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+              <AlertCircle size={22} className="text-white" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Search and Refresh Bar */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
           <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
             size={18}
           />
           <input
@@ -229,12 +278,12 @@ export default function CategoriesPage() {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
           />
         </div>
         <button
           onClick={() => dispatch(fetchCategories())}
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors flex items-center gap-2"
+          className="px-5 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors flex items-center gap-2 font-medium"
         >
           <RefreshCw size={16} />
           Refresh
@@ -242,32 +291,38 @@ export default function CategoriesPage() {
       </div>
 
       {/* Categories Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Folder size={20} className="text-blue-600" />
-            Category List ({filteredCategories.length})
-          </h2>
+      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 bg-blue-100 rounded-lg">
+              <Folder size={16} className="text-blue-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Category List
+            </h2>
+            <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full ml-2">
+              {filteredCategories.length} categories
+            </span>
+          </div>
         </div>
 
         {filteredCategories.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Folder size={24} className="text-gray-400" />
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <Folder size={32} className="text-gray-400" />
             </div>
-            <p className="text-gray-500">
+            <p className="text-gray-500 font-medium">
               {searchTerm
                 ? "No categories match your search"
                 : "No categories found"}
             </p>
             {!searchTerm && (
-              <Button
+              <button
                 onClick={handleOpenCreateModal}
-                variant="secondary"
-                className="mt-4"
+                className="mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
                 Create your first category
-              </Button>
+              </button>
             )}
           </div>
         ) : (
@@ -276,19 +331,19 @@ export default function CategoriesPage() {
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
-                    <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       #
                     </th>
-                    <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Category Name
                     </th>
-                    <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Description
                     </th>
-                    <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       ID
                     </th>
-                    <th className="text-left py-3 px-6 text-sm font-semibold text-gray-600">
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -299,14 +354,14 @@ export default function CategoriesPage() {
                     return (
                       <tr
                         key={category.id}
-                        className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                        className="border-b border-gray-50 hover:bg-gray-50 transition-colors group"
                       >
                         <td className="py-3 px-6 text-sm text-gray-500">
                           {(currentPage - 1) * itemsPerPage + index + 1}
                         </td>
                         <td className="py-3 px-6">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
                               <FolderTree size={14} className="text-blue-600" />
                             </div>
                             <div>
@@ -314,9 +369,9 @@ export default function CategoriesPage() {
                                 {category.name}
                               </span>
                               {productCount > 0 && (
-                                <span className="ml-2 text-xs text-gray-500">
-                                  ({productCount}{" "}
-                                  {productCount === 1 ? "product" : "products"})
+                                <span className="ml-2 text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                                  {productCount}{" "}
+                                  {productCount === 1 ? "product" : "products"}
                                 </span>
                               )}
                             </div>
@@ -334,22 +389,22 @@ export default function CategoriesPage() {
                           )}
                         </td>
                         <td className="py-3 px-6">
-                          <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600">
                             {category.id.slice(-8)}
                           </code>
                         </td>
                         <td className="py-3 px-6">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleOpenEditModal(category)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
                               title="Edit category"
                             >
                               <Edit size={16} />
                             </button>
                             <button
                               onClick={() => handleOpenDeleteModal(category)}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
                               title="Delete category"
                             >
                               <Trash2 size={16} />
@@ -366,7 +421,7 @@ export default function CategoriesPage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-4">
                   <p className="text-sm text-gray-600">
                     Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
                     {Math.min(
@@ -379,25 +434,38 @@ export default function CategoriesPage() {
                     <button
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="p-2 rounded-lg border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                      className="p-2 rounded-xl border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                     >
                       <ChevronLeft size={16} />
                     </button>
                     <div className="flex gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                        (page) => (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            className={`px-3 py-1 rounded-lg transition-colors ${
-                              currentPage === page
-                                ? "bg-blue-600 text-white"
-                                : "hover:bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {page}
-                          </button>
-                        ),
+                      {Array.from(
+                        { length: Math.min(5, totalPages) },
+                        (_, i) => {
+                          let pageNum;
+                          if (totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (currentPage >= totalPages - 2) {
+                            pageNum = totalPages - 4 + i;
+                          } else {
+                            pageNum = currentPage - 2 + i;
+                          }
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => setCurrentPage(pageNum)}
+                              className={`px-3 py-1 rounded-lg transition-colors ${
+                                currentPage === pageNum
+                                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                                  : "hover:bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        },
                       )}
                     </div>
                     <button
@@ -405,7 +473,7 @@ export default function CategoriesPage() {
                         setCurrentPage((p) => Math.min(totalPages, p + 1))
                       }
                       disabled={currentPage === totalPages}
-                      className="p-2 rounded-lg border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+                      className="p-2 rounded-xl border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                     >
                       <ChevronRight size={16} />
                     </button>
@@ -425,32 +493,35 @@ export default function CategoriesPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Category Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
               placeholder="e.g., Electronics, Clothing, Books"
               autoFocus
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
               Description (Optional)
             </label>
             <textarea
               value={categoryDesc}
               onChange={(e) => setCategoryDesc(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               placeholder="Brief description of the category"
             />
           </div>
           <div className="flex gap-3 pt-4">
-            <Button onClick={handleSave} className="flex-1">
+            <Button
+              onClick={handleSave}
+              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+            >
               {editingCategory ? "Update Category" : "Create Category"}
             </Button>
             <Button
@@ -471,8 +542,8 @@ export default function CategoriesPage() {
         title="Delete Category"
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg border border-red-100">
-            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+          <div className="flex items-center gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
               <Trash2 size={20} className="text-red-600" />
             </div>
             <div>
@@ -484,7 +555,7 @@ export default function CategoriesPage() {
                 ?
               </p>
               {deletingCategory && getProductCount(deletingCategory.id) > 0 && (
-                <p className="text-xs text-red-600 mt-1">
+                <p className="text-xs text-red-600 mt-2">
                   ⚠️ This category has {getProductCount(deletingCategory.id)}{" "}
                   product(s). You cannot delete it until you reassign or delete
                   these products.
@@ -492,17 +563,17 @@ export default function CategoriesPage() {
               )}
               {(!deletingCategory ||
                 getProductCount(deletingCategory.id) === 0) && (
-                <p className="text-xs text-red-600 mt-1">
+                <p className="text-xs text-red-600 mt-2">
                   This action cannot be undone.
                 </p>
               )}
             </div>
           </div>
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-2">
             <Button
               variant="danger"
               onClick={handleDelete}
-              className="flex-1"
+              className="flex-1 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
               disabled={
                 deletingCategory && getProductCount(deletingCategory.id) > 0
               }
