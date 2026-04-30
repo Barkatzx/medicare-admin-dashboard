@@ -17,15 +17,14 @@ const initialState: DashboardState = {
   lastFetchAttempt: null,
 };
 
+// dashboardSlice.ts
 export const fetchDashboardStats = createAsyncThunk(
   "dashboard/fetchStats",
-  async (_, { rejectWithValue, getState }) => {
+  async (_, { rejectWithValue }) => {
     try {
       const response = await api.getDashboardData();
       return response;
     } catch (error: any) {
-      console.error("Dashboard stats fetch error:", error);
-      // Return fallback data instead of throwing to prevent UI breaking
       return rejectWithValue(
         error.message || "Failed to fetch dashboard statistics",
       );

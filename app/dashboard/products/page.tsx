@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Pencil,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import toast from "react-hot-toast";
@@ -493,14 +494,14 @@ export default function ProductsPage() {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleStockManagement(product)}
-                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all duration-200"
+                            className="p-2 text-emerald-600 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-all duration-200"
                             title="Manage Stock"
                           >
-                            <TrendingUp size={16} />
+                            <Pencil size={16} />
                           </button>
                           <button
                             onClick={() => handleEdit(product)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                            className="p-2 text-blue-600 bg-blue-100 hover:bg-blue-200 rounded-lg transition-all duration-200"
                             title="Edit Product"
                           >
                             <Edit size={16} />
@@ -510,7 +511,7 @@ export default function ProductsPage() {
                             disabled={
                               isDeleting && productToDelete === product.id
                             }
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 disabled:opacity-50"
+                            className="p-2 text-red-600 bg-red-100 hover:bg-red-200 rounded-lg transition-all duration-200 disabled:opacity-50"
                             title="Delete Product"
                           >
                             <Trash2 size={16} />

@@ -89,34 +89,6 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-8 text-white">
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl" />
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur">
-                <UsersIcon size={24} className="text-white" />
-              </div>
-              <h1 className="text-3xl font-bold">User Management</h1>
-            </div>
-            <p className="text-gray-300 max-w-xl">
-              Manage and monitor customer accounts, approve registrations, and
-              track user activity across the platform.
-            </p>
-          </div>
-          <Button
-            onClick={handleRefresh}
-            variant="secondary"
-            className="bg-white/10 text-white hover:bg-white/20 border-white/20"
-          >
-            <RefreshCw size={16} className="mr-2" />
-            Refresh
-          </Button>
-        </div>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">

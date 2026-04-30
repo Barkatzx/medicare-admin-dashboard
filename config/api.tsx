@@ -925,6 +925,13 @@ class API {
     return [];
   }
 
+  // Add this method to your API class in services/api.ts
+
+  async getProductCountsByCategory(): Promise<Record<string, number>> {
+    const result = await this.request("/products/counts-by-category");
+    return result;
+  }
+
   async createCategory(name: string, description?: string): Promise<Category> {
     return this.request("/categories/", {
       method: "POST",
@@ -994,11 +1001,6 @@ class API {
 
   // ==================== SALES & REPORTS ====================
 
-  // async getTopProducts(limit: number = 10): Promise<any[]> {
-  //   const data = await this.request(`/sales/top-products?limit=${limit}`);
-  //   return Array.isArray(data) ? data : [];
-  // }
-
   // Update the getTopProducts method return type
   async getTopProducts(limit: number = 10): Promise<TopProduct[]> {
     const data = await this.request(`/sales/top-products?limit=${limit}`);
@@ -1024,7 +1026,6 @@ class API {
     }
   }
 
-  // Update the method signatures in your API class
   async getDailySales(): Promise<DailySalesData[]> {
     const data = await this.request("/sales/daily");
     return Array.isArray(data) ? data : [];

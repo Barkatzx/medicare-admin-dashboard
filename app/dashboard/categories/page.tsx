@@ -1,4 +1,3 @@
-// src/app/dashboard/categories/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,6 +8,7 @@ import {
   updateCategory,
   deleteCategory,
 } from "@/store/slices/categorySlice";
+import { api } from "@/config/api";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import {
@@ -26,13 +26,20 @@ import {
   Layers,
   Clock,
   TrendingUp,
+  Feather,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function CategoriesPage() {
   const dispatch = useAppDispatch();
   const { categories, loading } = useAppSelector((state) => state.categories);
-  const { products } = useAppSelector((state) => state.products);
+
+  // ✅ Per-category product counts fetched from API (not from paginated Redux store)
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>(
+    {},
+  );
+  const [countsLoading, setCountsLoading] = useState(false);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any>(null);
@@ -47,9 +54,41 @@ export default function CategoriesPage() {
     dispatch(fetchCategories());
   }, [dispatch]);
 
-  const getProductCount = (categoryId: string) => {
-    return products.filter((product) => product.categoryId === categoryId)
-      .length;
+  // ✅ Fetch real product counts per category once categories are loaded
+  useEffect(() => {
+    if (categories.length === 0) return;
+
+    const fetchCounts = async () => {
+      setCountsLoading(true);
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        categories.map(async (category) => {
+          try {
+            const result = await api.getAllProducts(
+              1,
+              1,
+              undefined,
+              category.id,
+            );
+            counts[category.id] = result.pagination.total;
+          } catch {
+            counts[category.id] = 0;
+          }
+        }),
+      );
+      setCategoryCounts(counts);
+      setCountsLoading(false);
+    };
+
+    fetchCounts();
+  }, [categories]);
+
+  // ✅ Uses real API counts, not in-memory Redux products
+  const getProductCount = (categoryId: string) =>
+    categoryCounts[categoryId] ?? 0;
+
+  const handleRefresh = () => {
+    dispatch(fetchCategories()); // useEffect above will re-fetch counts when categories updates
   };
 
   const handleOpenCreateModal = () => {
@@ -76,7 +115,6 @@ export default function CategoriesPage() {
       toast.error("Category name is required");
       return;
     }
-
     try {
       if (editingCategory) {
         await dispatch(
@@ -86,15 +124,10 @@ export default function CategoriesPage() {
             description: categoryDesc,
           }),
         ).unwrap();
-        toast.success("Category updated successfully");
       } else {
         await dispatch(
-          createCategory({
-            name: categoryName,
-            description: categoryDesc,
-          }),
+          createCategory({ name: categoryName, description: categoryDesc }),
         ).unwrap();
-        toast.success("Category created successfully");
       }
       setIsModalOpen(false);
       setCategoryName("");
@@ -110,7 +143,6 @@ export default function CategoriesPage() {
 
   const handleDelete = async () => {
     if (!deletingCategory) return;
-
     const productCount = getProductCount(deletingCategory.id);
     if (productCount > 0) {
       toast.error(
@@ -120,10 +152,8 @@ export default function CategoriesPage() {
       setDeletingCategory(null);
       return;
     }
-
     try {
       await dispatch(deleteCategory(deletingCategory.id)).unwrap();
-      toast.success("Category deleted successfully");
       setIsDeleteModalOpen(false);
       setDeletingCategory(null);
       dispatch(fetchCategories());
@@ -146,9 +176,13 @@ export default function CategoriesPage() {
     currentPage * itemsPerPage,
   );
 
-  const totalProducts = products.length;
+  // ✅ Stats derived from real API counts
+  const totalProducts = Object.values(categoryCounts).reduce(
+    (a, b) => a + b,
+    0,
+  );
   const categoriesWithProducts = categories.filter(
-    (c) => getProductCount(c.id) > 0,
+    (c) => (categoryCounts[c.id] ?? 0) > 0,
   ).length;
   const emptyCategories = categories.length - categoriesWithProducts;
 
@@ -165,7 +199,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header Section */}
+      {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-8 text-white">
         <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl" />
@@ -173,7 +207,7 @@ export default function CategoriesPage() {
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur">
-                <FolderTree size={24} className="text-white" />
+                <Folder size={24} className="text-white" />
               </div>
               <h1 className="text-3xl font-bold">Categories</h1>
             </div>
@@ -194,76 +228,63 @@ export default function CategoriesPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/0 group-hover:from-blue-50/50 group-hover:to-blue-50/30 transition-all duration-300" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">
-                Total Categories
-              </p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {categories.length}
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
-              <Folder size={22} className="text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/0 to-emerald-50/0 group-hover:from-emerald-50/50 group-hover:to-emerald-50/30 transition-all duration-300" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">
-                Total Products
-              </p>
-              <p className="text-3xl font-bold text-emerald-600 mt-1">
-                {totalProducts}
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
-              <Package size={22} className="text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-50/0 to-purple-50/0 group-hover:from-purple-50/50 group-hover:to-purple-50/30 transition-all duration-300" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">
-                Categories with Products
-              </p>
-              <p className="text-3xl font-bold text-purple-600 mt-1">
-                {categoriesWithProducts}
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
-              <Layers size={22} className="text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/0 to-amber-50/0 group-hover:from-amber-50/50 group-hover:to-amber-50/30 transition-all duration-300" />
-          <div className="relative flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">
-                Empty Categories
-              </p>
-              <p className="text-3xl font-bold text-amber-600 mt-1">
-                {emptyCategories}
-              </p>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
-              <AlertCircle size={22} className="text-white" />
+        {[
+          {
+            label: "Total Categories",
+            value: categories.length,
+            icon: Folder,
+            gradient: "from-blue-500 to-indigo-600",
+            hover: "from-blue-50/50 to-blue-50/30",
+            color: "text-gray-900",
+          },
+          {
+            label: "Total Products",
+            value: countsLoading ? "..." : totalProducts,
+            icon: Package,
+            gradient: "from-emerald-500 to-teal-600",
+            hover: "from-emerald-50/50 to-emerald-50/30",
+            color: "text-emerald-600",
+          },
+          {
+            label: "Categories with Products",
+            value: countsLoading ? "..." : categoriesWithProducts,
+            icon: Layers,
+            gradient: "from-purple-500 to-pink-600",
+            hover: "from-purple-50/50 to-purple-50/30",
+            color: "text-purple-600",
+          },
+          {
+            label: "Empty Categories",
+            value: countsLoading ? "..." : emptyCategories,
+            icon: AlertCircle,
+            gradient: "from-amber-500 to-orange-600",
+            hover: "from-amber-50/50 to-amber-50/30",
+            color: "text-amber-600",
+          },
+        ].map(({ label, value, icon: Icon, gradient, hover, color }) => (
+          <div
+            key={label}
+            className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+          >
+            <div
+              className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-all duration-300 ${hover}`}
+            />
+            <div className="relative flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">{label}</p>
+                <p className={`text-3xl font-bold mt-1 ${color}`}>{value}</p>
+              </div>
+              <div
+                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110`}
+              >
+                <Icon size={22} className="text-white" />
+              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
-      {/* Search and Refresh Bar */}
+      {/* Search and Refresh */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
           <Search
@@ -282,7 +303,7 @@ export default function CategoriesPage() {
           />
         </div>
         <button
-          onClick={() => dispatch(fetchCategories())}
+          onClick={handleRefresh}
           className="px-5 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors flex items-center gap-2 font-medium"
         >
           <RefreshCw size={16} />
@@ -290,7 +311,7 @@ export default function CategoriesPage() {
         </button>
       </div>
 
-      {/* Categories Table */}
+      {/* Table */}
       <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-2">
@@ -341,6 +362,9 @@ export default function CategoriesPage() {
                       Description
                     </th>
                     <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Products
+                    </th>
+                    <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       ID
                     </th>
                     <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -362,19 +386,11 @@ export default function CategoriesPage() {
                         <td className="py-3 px-6">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                              <FolderTree size={14} className="text-blue-600" />
+                              <Feather size={14} className="text-blue-600" />
                             </div>
-                            <div>
-                              <span className="font-medium text-gray-900">
-                                {category.name}
-                              </span>
-                              {productCount > 0 && (
-                                <span className="ml-2 text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
-                                  {productCount}{" "}
-                                  {productCount === 1 ? "product" : "products"}
-                                </span>
-                              )}
-                            </div>
+                            <span className="font-medium text-gray-900">
+                              {category.name}
+                            </span>
                           </div>
                         </td>
                         <td className="py-3 px-6">
@@ -388,6 +404,19 @@ export default function CategoriesPage() {
                             </span>
                           )}
                         </td>
+                        {/* ✅ Dedicated Products column with real count */}
+                        <td className="py-3 px-6">
+                          {countsLoading ? (
+                            <div className="h-5 w-12 bg-gray-200 rounded animate-pulse" />
+                          ) : (
+                            <span
+                              className={`text-xs font-semibold px-2 py-1 rounded-full ${productCount > 0 ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-400"}`}
+                            >
+                              {productCount}{" "}
+                              {productCount === 1 ? "product" : "products"}
+                            </span>
+                          )}
+                        </td>
                         <td className="py-3 px-6">
                           <code className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600">
                             {category.id.slice(-8)}
@@ -397,14 +426,14 @@ export default function CategoriesPage() {
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => handleOpenEditModal(category)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
+                              className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-200 rounded-lg transition-all duration-200"
                               title="Edit category"
                             >
                               <Edit size={16} />
                             </button>
                             <button
                               onClick={() => handleOpenDeleteModal(category)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
+                              className="p-2 text-red-600 bg-red-50 hover:bg-red-200 rounded-lg transition-all duration-200"
                               title="Delete category"
                             >
                               <Trash2 size={16} />
@@ -418,7 +447,6 @@ export default function CategoriesPage() {
               </table>
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
                 <div className="flex items-center justify-between flex-wrap gap-4">
@@ -443,24 +471,16 @@ export default function CategoriesPage() {
                         { length: Math.min(5, totalPages) },
                         (_, i) => {
                           let pageNum;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (currentPage <= 3) {
-                            pageNum = i + 1;
-                          } else if (currentPage >= totalPages - 2) {
+                          if (totalPages <= 5) pageNum = i + 1;
+                          else if (currentPage <= 3) pageNum = i + 1;
+                          else if (currentPage >= totalPages - 2)
                             pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = currentPage - 2 + i;
-                          }
+                          else pageNum = currentPage - 2 + i;
                           return (
                             <button
                               key={pageNum}
                               onClick={() => setCurrentPage(pageNum)}
-                              className={`px-3 py-1 rounded-lg transition-colors ${
-                                currentPage === pageNum
-                                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
-                                  : "hover:bg-gray-100 text-gray-600"
-                              }`}
+                              className={`px-3 py-1 rounded-lg transition-colors ${currentPage === pageNum ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md" : "hover:bg-gray-100 text-gray-600"}`}
                             >
                               {pageNum}
                             </button>
@@ -535,7 +555,7 @@ export default function CategoriesPage() {
         </div>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Modal */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -548,21 +568,18 @@ export default function CategoriesPage() {
             </div>
             <div>
               <p className="text-sm text-gray-700">
-                Are you sure you want to delete the category{" "}
+                Are you sure you want to delete{" "}
                 <strong className="text-gray-900">
                   "{deletingCategory?.name}"
                 </strong>
                 ?
               </p>
-              {deletingCategory && getProductCount(deletingCategory.id) > 0 && (
+              {deletingCategory && getProductCount(deletingCategory.id) > 0 ? (
                 <p className="text-xs text-red-600 mt-2">
                   ⚠️ This category has {getProductCount(deletingCategory.id)}{" "}
-                  product(s). You cannot delete it until you reassign or delete
-                  these products.
+                  product(s). Reassign or delete them first.
                 </p>
-              )}
-              {(!deletingCategory ||
-                getProductCount(deletingCategory.id) === 0) && (
+              ) : (
                 <p className="text-xs text-red-600 mt-2">
                   This action cannot be undone.
                 </p>
@@ -575,7 +592,7 @@ export default function CategoriesPage() {
               onClick={handleDelete}
               className="flex-1 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
               disabled={
-                deletingCategory && getProductCount(deletingCategory.id) > 0
+                !!(deletingCategory && getProductCount(deletingCategory.id) > 0)
               }
             >
               Delete Category
