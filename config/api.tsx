@@ -1,6 +1,6 @@
 // services/api.ts - Full updated file
 
-const API_BASE_URL = "https://medicare-server-production.up.railway.app/api";
+const API_BASE_URL = "https://api.barkatulla.com/api";
 
 export interface User {
   id: string;
