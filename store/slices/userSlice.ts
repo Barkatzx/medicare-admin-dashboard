@@ -27,6 +27,18 @@ export const approveUser = createAsyncThunk(
   },
 );
 
+export const deleteUser = createAsyncThunk(
+  "users/delete",
+  async (userId: string, { rejectWithValue }) => {
+    try {
+      await api.deleteUser(userId);
+      return userId;
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to delete user");
+    }
+  },
+);
+
 const userSlice = createSlice({
   name: "users",
   initialState,
@@ -35,6 +47,7 @@ const userSlice = createSlice({
     builder
       .addCase(fetchUsers.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
@@ -45,8 +58,10 @@ const userSlice = createSlice({
         state.error = action.error.message || "Failed to fetch users";
         toast.error("Failed to fetch users");
       })
+
       .addCase(approveUser.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(approveUser.fulfilled, (state, action) => {
         state.loading = false;
@@ -60,6 +75,22 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = action.error.message || "Failed to approve user";
         toast.error("Failed to approve user");
+      })
+
+      .addCase(deleteUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = state.users.filter((u) => u.id !== action.payload);
+        // ✅ Toast shown here in slice — NOT in the page handler
+        toast.success("User deleted successfully");
+      })
+      .addCase(deleteUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = (action.payload as string) || "Failed to delete user";
+        toast.error((action.payload as string) || "Failed to delete user");
       });
   },
 });

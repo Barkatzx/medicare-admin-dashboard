@@ -1,10 +1,10 @@
-// src/app/dashboard/users/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchUsers, approveUser } from "@/store/slices/userSlice";
+import { fetchUsers, approveUser, deleteUser } from "@/store/slices/userSlice";
 import Button from "@/components/ui/Button";
+import Modal from "@/components/ui/Modal";
 import {
   CheckCircle,
   Mail,
@@ -15,18 +15,19 @@ import {
   Search,
   Users as UsersIcon,
   UserCheck,
-  UserX,
-  Filter,
-  MoreVertical,
-  Shield,
-  Star,
+  Trash2,
+  AlertTriangle,
   TrendingUp,
+  Shield,
 } from "lucide-react";
 
 export default function UsersPage() {
   const dispatch = useAppDispatch();
   const { users, loading } = useAppSelector((state) => state.users);
   const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<any>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "pending" | "approved"
@@ -40,6 +41,28 @@ export default function UsersPage() {
     setApprovingId(userId);
     await dispatch(approveUser(userId));
     setApprovingId(null);
+  };
+
+  const handleDeleteClick = (user: any) => {
+    setUserToDelete(user);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+    setDeletingId(userToDelete.id);
+    try {
+      await dispatch(deleteUser(userToDelete.id)).unwrap();
+      // ✅ No toast here — slice handles it
+      // ✅ No fetchUsers() needed — slice removes user from state immediately
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
+    } catch (error: any) {
+      // ✅ No toast here — slice handles it
+      // Error is already shown by the slice's rejected case
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleRefresh = () => {
@@ -91,8 +114,7 @@ export default function UsersPage() {
     <div className="space-y-8">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-blue-50/0 group-hover:from-blue-50/50 group-hover:to-blue-50/30 transition-all duration-300" />
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 border border-gray-100 transition-all duration-300">
           <div className="relative flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Total Users</p>
@@ -104,14 +126,13 @@ export default function UsersPage() {
                 +12% this month
               </p>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300">
               <UsersIcon size={22} className="text-white" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/0 to-amber-50/0 group-hover:from-amber-50/50 group-hover:to-amber-50/30 transition-all duration-300" />
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 border border-gray-100 transition-all duration-300">
           <div className="relative flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">
@@ -122,14 +143,13 @@ export default function UsersPage() {
               </p>
               <p className="text-xs text-gray-500 mt-1">Awaiting review</p>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300">
               <Clock size={22} className="text-white" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/0 to-emerald-50/0 group-hover:from-emerald-50/50 group-hover:to-emerald-50/30 transition-all duration-300" />
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 border border-gray-100 transition-all duration-300">
           <div className="relative flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">
@@ -140,14 +160,13 @@ export default function UsersPage() {
               </p>
               <p className="text-xs text-gray-500 mt-1">Verified accounts</p>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+            <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300">
               <UserCheck size={22} className="text-white" />
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-50/0 to-purple-50/0 group-hover:from-purple-50/50 group-hover:to-purple-50/30 transition-all duration-300" />
+        <div className="group relative overflow-hidden rounded-2xl bg-white p-6 border border-gray-100 transition-all duration-300">
           <div className="relative flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-medium">Approval Rate</p>
@@ -159,7 +178,7 @@ export default function UsersPage() {
                 +5.2% vs last month
               </p>
             </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
               <Shield size={22} className="text-white" />
             </div>
           </div>
@@ -217,7 +236,7 @@ export default function UsersPage() {
 
       {/* Pending Approvals Table */}
       {pendingUsers.length > 0 && (
-        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+        <div className="rounded-2xl bg-white border border-gray-100 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-orange-50">
             <div className="flex items-center gap-2">
               <div className="p-1.5 bg-amber-100 rounded-lg">
@@ -248,7 +267,7 @@ export default function UsersPage() {
                     Status
                   </th>
                   <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Action
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -289,16 +308,25 @@ export default function UsersPage() {
                       </span>
                     </td>
                     <td className="py-3 px-6">
-                      <Button
-                        variant="success"
-                        size="sm"
-                        onClick={() => handleApprove(user.id)}
-                        loading={approvingId === user.id}
-                        className="gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
-                      >
-                        <CheckCircle size={14} />
-                        Approve
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleApprove(user.id)}
+                          loading={approvingId === user.id}
+                          className="p-2 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-all duration-200 text-emerald-600"
+                        >
+                          <CheckCircle
+                            size={16}
+                            className="text-emerald-600"
+                          />{" "}
+                        </Button>
+                        <button
+                          onClick={() => handleDeleteClick(user)}
+                          className="p-2 text-red-600 bg-red-100 hover:bg-red-200 rounded-lg transition-all duration-200"
+                          title="Delete User"
+                        >
+                          <Trash2 size={16} className="text-red-600" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -309,7 +337,7 @@ export default function UsersPage() {
       )}
 
       {/* Approved Customers Table */}
-      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+      <div className="rounded-2xl bg-white border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-emerald-100 rounded-lg">
@@ -355,6 +383,9 @@ export default function UsersPage() {
                   </th>
                   <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Status
+                  </th>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -411,6 +442,15 @@ export default function UsersPage() {
                         Active
                       </span>
                     </td>
+                    <td className="py-3 px-6">
+                      <button
+                        onClick={() => handleDeleteClick(user)}
+                        className="p-2 text-red-600 bg-red-100 hover:bg-red-200 rounded-lg transition-all duration-200"
+                        title="Delete User"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -419,13 +459,49 @@ export default function UsersPage() {
         )}
       </div>
 
-      <style jsx>{`
-        @keyframes shimmer {
-          100% {
-            transform: translateX(100%);
-          }
-        }
-      `}</style>
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Delete User"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+              <AlertTriangle size={20} className="text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-700">
+                Are you sure you want to delete the user{" "}
+                <strong className="text-gray-900">
+                  "{userToDelete?.name || userToDelete?.email}"
+                </strong>
+                ?
+              </p>
+              <p className="text-xs text-red-600 mt-1">
+                This action cannot be undone. All user data will be permanently
+                removed.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleDelete}
+              loading={deletingId === userToDelete?.id}
+              className="flex-1 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700"
+            >
+              Delete User
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

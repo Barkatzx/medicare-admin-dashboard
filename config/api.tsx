@@ -314,7 +314,6 @@ class API {
       }
 
       if (!response.ok) {
-        // Retry on 5xx server errors
         if (response.status >= 500 && retries > 0) {
           console.warn(
             `API ${response.status} for ${endpoint}. Retrying in ${backoff}ms...`,
@@ -343,16 +342,21 @@ class API {
         );
       }
 
-      const result = await response.json();
+      // ✅ KEY FIX: Handle 204 No Content (DELETE returns empty body)
+      if (response.status === 204) return null;
 
-      // Handle Railway API response structure { success: true, data: ... }
+      // ✅ KEY FIX: Safely read text first, only parse if non-empty
+      const text = await response.text();
+      if (!text || text.trim() === "") return null;
+
+      const result = JSON.parse(text);
+
       if (result && result.success === true) {
         return result.data;
       }
 
       return result;
     } catch (error) {
-      // Retry on network errors (fetch throws TypeError)
       if (retries > 0 && error instanceof TypeError) {
         console.warn(
           `Network error for ${endpoint}. Retrying in ${backoff}ms...`,
@@ -360,7 +364,6 @@ class API {
         await new Promise((resolve) => setTimeout(resolve, backoff));
         return this.request(endpoint, options, retries - 1, backoff * 2);
       }
-
       console.error(`API Error (${endpoint}):`, error);
       throw error;
     }
@@ -422,6 +425,12 @@ class API {
 
   async approveUser(userId: string): Promise<User> {
     return this.request(`/users/approve/${userId}`, { method: "PUT" });
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await this.request(`/users/${userId}`, {
+      method: "DELETE",
+    });
   }
 
   // ==================== USER ADDRESS NOTIFICATION MANAGEMENT ====================

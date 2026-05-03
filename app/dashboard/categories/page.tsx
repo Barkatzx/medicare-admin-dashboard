@@ -199,33 +199,6 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-8 text-white">
-        <div className="absolute right-0 top-0 -mr-16 -mt-16 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -mb-16 -ml-16 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl" />
-        <div className="relative flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur">
-                <Folder size={24} className="text-white" />
-              </div>
-              <h1 className="text-3xl font-bold">Categories</h1>
-            </div>
-            <p className="text-gray-300 max-w-xl">
-              Organize your products into categories for better management and
-              customer experience.
-            </p>
-          </div>
-          <Button
-            onClick={handleOpenCreateModal}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
-          >
-            <Plus size={16} className="mr-2" />
-            Add Category
-          </Button>
-        </div>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {[
@@ -264,18 +237,15 @@ export default function CategoriesPage() {
         ].map(({ label, value, icon: Icon, gradient, hover, color }) => (
           <div
             key={label}
-            className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+            className="group relative overflow-hidden rounded-2xl bg-white p-6 border border-gray-100 transition-all duration-300"
           >
-            <div
-              className={`absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-100 transition-all duration-300 ${hover}`}
-            />
             <div className="relative flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 font-medium">{label}</p>
                 <p className={`text-3xl font-bold mt-1 ${color}`}>{value}</p>
               </div>
               <div
-                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg transform transition-transform duration-300 group-hover:scale-110`}
+                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg transform transition-transform duration-300`}
               >
                 <Icon size={22} className="text-white" />
               </div>
@@ -309,6 +279,13 @@ export default function CategoriesPage() {
           <RefreshCw size={16} />
           Refresh
         </button>
+        <Button
+          onClick={handleOpenCreateModal}
+          className="flex items-center gap-2 bg-blue-600 shadow-lg"
+        >
+          <Plus size={16} className="mr-2" />
+          Add Category
+        </Button>
       </div>
 
       {/* Table */}
