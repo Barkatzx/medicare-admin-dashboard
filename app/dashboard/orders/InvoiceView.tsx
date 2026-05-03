@@ -27,7 +27,7 @@ export default function InvoiceView({ order }: InvoiceViewProps) {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-1.5 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+        className="p-2 bg-purple-100 text-purple-600 hover:bg-purple-200 rounded-lg transition-colors"
         title="View Invoice"
       >
         <FileText size={16} />
@@ -120,10 +120,11 @@ export default function InvoiceView({ order }: InvoiceViewProps) {
                     {item.quantity}
                   </td>
                   <td className="text-right py-2 px-3 text-sm">
-                    ${parseFloat(item.price).toLocaleString()}
+                    {parseFloat(item.price).toLocaleString()} ৳
                   </td>
                   <td className="text-right py-2 px-3 text-sm">
-                    ${(parseFloat(item.price) * item.quantity).toLocaleString()}
+                    {(parseFloat(item.price) * item.quantity).toLocaleString()}{" "}
+                    ৳
                   </td>
                 </tr>
               ))}
@@ -133,10 +134,10 @@ export default function InvoiceView({ order }: InvoiceViewProps) {
           {/* Totals */}
           <div className="text-right space-y-1 pt-4 border-t">
             <p className="text-sm">
-              Subtotal: ${calculateSubtotal().toLocaleString()}
+              Subtotal: {calculateSubtotal().toLocaleString()} ৳
             </p>
             <p className="text-lg font-bold">
-              Total: ${parseFloat(order.totalAmount).toLocaleString()}
+              Total: {parseFloat(order.totalAmount).toLocaleString()} ৳
             </p>
             {order.payment?.method === "cod" && (
               <p className="text-xs text-gray-500">

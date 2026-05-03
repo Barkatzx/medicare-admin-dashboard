@@ -2,30 +2,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
 import { api, SalesSummaryData, TopProduct } from "@/config/api";
 import {
-  Download,
   TrendingUp,
-  ShoppingBag,
-  Users,
   Package,
-  DollarSign,
-  ArrowUpRight,
-  ArrowDownRight,
-  Printer,
-  FileText,
-  BarChart3,
   PieChart,
   Calendar,
   Tag,
   Star,
   Layers,
   RefreshCw,
-  Zap,
-  Award,
-  Clock,
+  ShoppingCart,
 } from "lucide-react";
 import {
   AreaChart,
@@ -101,6 +88,22 @@ interface DailyResponse {
   averageOrderValue: number;
   totalItemsSold: number;
   totalDiscounts: number;
+}
+
+interface TodayOrderedProduct {
+  id: string;
+  name: string;
+  quantity: number;
+  totalPrice: number;
+}
+
+interface TodayOrderedResponse {
+  products: TodayOrderedProduct[];
+  summary: {
+    totalProducts: number;
+    totalQuantity: number;
+    totalRevenue: number;
+  };
 }
 
 type ChartPeriod = "daily" | "weekly" | "monthly" | "yearly";
@@ -188,6 +191,9 @@ export default function ReportsPage() {
     null,
   );
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [todayOrders, setTodayOrders] = useState<TodayOrderedResponse | null>(
+    null,
+  );
   const [rawData, setRawData] = useState<any>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [period, setPeriod] = useState<ChartPeriod>("monthly");
@@ -201,16 +207,19 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [chartLoading, setChartLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [loadingTodayOrders, setLoadingTodayOrders] = useState(false);
 
   useEffect(() => {
     const init = async () => {
       try {
-        const [summary, products] = await Promise.all([
+        const [summary, products, todayOrdered] = await Promise.all([
           api.getSalesSummary(),
           api.getTopProducts(10),
+          api.getTodayOrderedProducts(),
         ]);
         setSalesSummary(summary);
         setTopProducts(products);
+        setTodayOrders(todayOrdered);
       } catch (err) {
         console.error(err);
       } finally {
@@ -219,6 +228,18 @@ export default function ReportsPage() {
     };
     init();
   }, []);
+
+  const refreshTodayOrders = async () => {
+    setLoadingTodayOrders(true);
+    try {
+      const data = await api.getTodayOrderedProducts();
+      setTodayOrders(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingTodayOrders(false);
+    }
+  };
 
   useEffect(() => {
     const fetchChart = async () => {
@@ -312,45 +333,6 @@ export default function ReportsPage() {
       orders: s.totalOrders,
     }));
 
-  const metrics = [
-    {
-      label: "Total Revenue",
-      value: `৳${salesSummary?.overall_summary?.totalSales?.toLocaleString() ?? "0"}`,
-      sub: `${period} ৳${periodTotals.totalSales.toLocaleString()}`,
-      icon: DollarSign,
-      color: "from-emerald-500 to-teal-500",
-      bg: "from-emerald-50 to-teal-50",
-      growth: salesSummary?.growth_percentage?.monthly ?? 0,
-    },
-    {
-      label: "Total Orders",
-      value: salesSummary?.overall_summary?.totalOrders?.toString() ?? "0",
-      sub: `${period} ${periodTotals.totalOrders} orders`,
-      icon: ShoppingBag,
-      color: "from-blue-500 to-indigo-500",
-      bg: "from-blue-50 to-indigo-50",
-      growth: salesSummary?.growth_percentage?.weekly ?? 0,
-    },
-    {
-      label: "Avg Order Value",
-      value: `৳${salesSummary?.overall_summary?.averageOrderValue?.toLocaleString() ?? "0"}`,
-      sub: `${periodTotals.totalItemsSold} items sold`,
-      icon: TrendingUp,
-      color: "from-purple-500 to-pink-500",
-      bg: "from-purple-50 to-pink-50",
-      growth: salesSummary?.growth_percentage?.daily ?? 0,
-    },
-    {
-      label: "Total Customers",
-      value: salesSummary?.overall_summary?.totalCustomers?.toString() ?? "0",
-      sub: `৳${salesSummary?.overall_summary?.totalDiscounts?.toLocaleString() ?? "0"} discounts`,
-      icon: Users,
-      color: "from-orange-500 to-red-500",
-      bg: "from-orange-50 to-red-50",
-      growth: salesSummary?.growth_percentage?.yearly ?? 0,
-    },
-  ];
-
   if (loading)
     return (
       <div className="flex items-center justify-center h-96">
@@ -363,77 +345,115 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {metrics.map((m) => {
-          const Icon = m.icon;
-          const up = m.growth >= 0;
-          return (
-            <div
-              key={m.label}
-              className="group relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
-            >
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${m.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-              />
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className={`p-3 rounded-xl bg-gradient-to-br ${m.color} shadow-lg`}
-                  >
-                    <Icon size={20} className="text-white" />
-                  </div>
-                  <div
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${up ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}
-                  >
-                    {up ? (
-                      <ArrowUpRight size={12} />
-                    ) : (
-                      <ArrowDownRight size={12} />
-                    )}
-                    {up ? "+" : ""}
-                    {m.growth}%
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mb-1">{m.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{m.value}</p>
-                <p className="text-xs text-gray-400 mt-1 capitalize">{m.sub}</p>
-                <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full bg-gradient-to-r ${m.color} w-3/4`}
-                  />
-                </div>
+      {/* Today's Ordered Products Section */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <ShoppingCart size={18} className="text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">
+                  Today's Ordered Products
+                </h3>
+                <p className="text-sm text-gray-500">
+                  Products ordered in the last 24 hours
+                </p>
               </div>
             </div>
-          );
-        })}
-      </div>
+            <button
+              onClick={refreshTodayOrders}
+              disabled={loadingTodayOrders}
+              className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"
+            >
+              <RefreshCw
+                size={16}
+                className={loadingTodayOrders ? "animate-spin" : ""}
+              />
+            </button>
+          </div>
+        </div>
 
-      {/* Growth Summary */}
-      {salesSummary?.growth_percentage && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {(["daily", "weekly", "monthly", "yearly"] as const).map((k) => {
-            const val = salesSummary.growth_percentage[k];
-            const up = val >= 0;
-            return (
-              <div
-                key={k}
-                className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm text-center"
-              >
-                <p className="text-xs text-gray-500 capitalize mb-1">
-                  {k} growth
-                </p>
-                <p
-                  className={`text-xl font-bold ${up ? "text-green-600" : "text-red-600"}`}
-                >
-                  {up ? "+" : ""}
-                  {val}%
+        {todayOrders && todayOrders.products.length > 0 ? (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 border-b border-gray-100">
+              <div className="text-center">
+                <p className="text-xs text-gray-500">Total Products</p>
+                <p className="text-xl font-bold text-blue-600">
+                  {todayOrders.summary.totalProducts}
                 </p>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="text-center">
+                <p className="text-xs text-gray-500">Total Quantity</p>
+                <p className="text-xl font-bold text-emerald-600">
+                  {todayOrders.summary.totalQuantity}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500">Total Revenue</p>
+                <p className="text-xl font-bold text-purple-600">
+                  ৳{todayOrders.summary.totalRevenue.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {/* Products Table */}
+            <div className="overflow-x-auto p-4">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Product
+                    </th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="text-left py-2 px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Total Price
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todayOrders.products.map((product) => (
+                    <tr
+                      key={product.id}
+                      className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="py-2 px-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          {product.name}
+                        </p>
+                      </td>
+                      <td className="py-2 px-3">
+                        <span className="inline-flex px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                          {product.quantity} units
+                        </span>
+                      </td>
+                      <td className="py-2 px-3">
+                        <span className="text-sm font-semibold text-gray-900">
+                          ৳{product.totalPrice.toLocaleString()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <ShoppingCart size={32} className="text-gray-400" />
+            </div>
+            <p className="text-gray-500 font-medium">No orders today</p>
+            <p className="text-sm text-gray-400 mt-1">
+              Products ordered today will appear here
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Sales Chart Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -455,7 +475,11 @@ export default function ReportsPage() {
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${period === p ? "bg-blue-600 text-white shadow-md shadow-blue-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all capitalize ${
+                    period === p
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
                 >
                   {p}
                 </button>

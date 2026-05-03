@@ -572,54 +572,6 @@ class API {
     return response?.data ?? response;
   }
   // ==================== PRODUCT MANAGEMENT ====================
-
-  // async getAllProducts(
-  //   page: number = 1,
-  //   limit: number = 20,
-  //   search?: string,
-  //   categoryId?: string,
-  // ): Promise<{ products: Product[]; pagination: any }> {
-  //   let url = `/products?page=${page}&limit=${limit}`;
-  //   if (search) url += `&search=${encodeURIComponent(search)}`;
-  //   if (categoryId) url += `&categoryId=${categoryId}`;
-
-  //   const result = await this.request(url);
-
-  //   const data = result?.data ?? result;
-
-  //   if (data && data.products && Array.isArray(data.products)) {
-  //     const p = data.pagination || {};
-  //     return {
-  //       products: data.products,
-  //       pagination: {
-  //         page: p.page ?? page,
-  //         limit: p.limit ?? limit,
-  //         total: p.total ?? data.products.length,
-  //         pages:
-  //           p.totalPages ??
-  //           p.pages ??
-  //           Math.ceil((p.total ?? data.products.length) / limit),
-  //       },
-  //     };
-  //   }
-
-  //   if (Array.isArray(data)) {
-  //     return {
-  //       products: data,
-  //       pagination: {
-  //         page: 1,
-  //         limit: data.length,
-  //         total: data.length,
-  //         pages: 1,
-  //       },
-  //     };
-  //   }
-
-  //   return {
-  //     products: [],
-  //     pagination: { page: 1, limit, total: 0, pages: 0 },
-  //   };
-  // }
   async getAllProducts(
     page: number = 1,
     limit: number = 20,
@@ -1016,6 +968,10 @@ class API {
     return Array.isArray(data) ? data : [];
   }
 
+  async getTodayOrderedProducts(): Promise<any> {
+    return this.request("/sales/today-ordered-products");
+  }
+
   async getDashboardData(): Promise<DashboardData> {
     try {
       const data = await this.request("/sales/dashboard");
@@ -1035,9 +991,21 @@ class API {
     }
   }
 
-  async getDailySales(): Promise<DailySalesData[]> {
+  // async getDailySales(): Promise<DailySalesData[]> {
+  //   const data = await this.request("/sales/daily");
+  //   return Array.isArray(data) ? data : [];
+  // }
+  async getDailySales(): Promise<DailySalesData | null> {
     const data = await this.request("/sales/daily");
-    return Array.isArray(data) ? data : [];
+    // If it's an array, return the first item
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0];
+    }
+    // If it's a single object
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      return data;
+    }
+    return null;
   }
 
   async getWeeklySales(): Promise<WeeklySalesData[]> {

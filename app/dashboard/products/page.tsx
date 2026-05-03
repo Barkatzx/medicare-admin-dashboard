@@ -264,7 +264,7 @@ export default function ProductsPage() {
       )}
 
       {/* Table */}
-      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+      <div className="rounded-2xl bg-white border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-blue-100 rounded-lg">

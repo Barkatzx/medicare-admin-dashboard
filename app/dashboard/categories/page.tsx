@@ -207,7 +207,6 @@ export default function CategoriesPage() {
             value: categories.length,
             icon: Folder,
             gradient: "from-blue-500 to-indigo-600",
-            hover: "from-blue-50/50 to-blue-50/30",
             color: "text-gray-900",
           },
           {
@@ -215,7 +214,6 @@ export default function CategoriesPage() {
             value: countsLoading ? "..." : totalProducts,
             icon: Package,
             gradient: "from-emerald-500 to-teal-600",
-            hover: "from-emerald-50/50 to-emerald-50/30",
             color: "text-emerald-600",
           },
           {
@@ -223,7 +221,6 @@ export default function CategoriesPage() {
             value: countsLoading ? "..." : categoriesWithProducts,
             icon: Layers,
             gradient: "from-purple-500 to-pink-600",
-            hover: "from-purple-50/50 to-purple-50/30",
             color: "text-purple-600",
           },
           {
@@ -231,10 +228,9 @@ export default function CategoriesPage() {
             value: countsLoading ? "..." : emptyCategories,
             icon: AlertCircle,
             gradient: "from-amber-500 to-orange-600",
-            hover: "from-amber-50/50 to-amber-50/30",
             color: "text-amber-600",
           },
-        ].map(({ label, value, icon: Icon, gradient, hover, color }) => (
+        ].map(({ label, value, icon: Icon, gradient, color }) => (
           <div
             key={label}
             className="group relative overflow-hidden rounded-2xl bg-white p-6 border border-gray-100 transition-all duration-300"
@@ -289,7 +285,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Table */}
-      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
+      <div className="rounded-2xl bg-white border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-blue-100 rounded-lg">

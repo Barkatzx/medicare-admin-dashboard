@@ -228,8 +228,8 @@ export default function InvoicePDF({ order }: InvoicePDFProps) {
                   <tr>
                     <td>${item.product.name}</td>
                     <td style="text-align: center">${item.quantity}</td>
-                    <td style="text-align: right">$${parseFloat(item.price).toLocaleString()}</td>
-                    <td style="text-align: right">$${(parseFloat(item.price) * item.quantity).toLocaleString()}</td>
+                    <td style="text-align: right">${parseFloat(item.price).toLocaleString()} ৳</td>
+                    <td style="text-align: right">${(parseFloat(item.price) * item.quantity).toLocaleString()} ৳</td>
                   </tr>
                 `,
                   )
@@ -237,7 +237,7 @@ export default function InvoicePDF({ order }: InvoicePDFProps) {
               </tbody>
             </table>
             <div class="total-section">
-              <div class="total-row">Total Amount: $${parseFloat(order.totalAmount).toLocaleString()}</div>
+              <div class="total-row">Total Amount: ${parseFloat(order.totalAmount).toLocaleString()} ৳</div>
               ${order.payment?.method === "cod" ? '<div style="font-size: 10px; color: #6b7280; margin-top: 5px;">Cash on Delivery</div>' : ""}
             </div>
           </div>
@@ -259,7 +259,7 @@ export default function InvoicePDF({ order }: InvoicePDFProps) {
   return (
     <button
       onClick={printInvoice}
-      className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+      className="p-2 bg-emerald-100 text-emerald-600 hover:bg-emerald-200 rounded-lg transition-colors"
       title="Print Invoice"
     >
       <Printer size={16} />

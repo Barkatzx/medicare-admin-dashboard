@@ -1,4 +1,3 @@
-// src/app/dashboard/orders/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,34 +7,33 @@ import {
   updateOrderStatus,
   confirmPayment,
 } from "@/store/slices/orderSlice";
-import Button from "@/components/ui/Button";
-import Modal from "@/components/ui/Modal";
 import {
-  Eye,
   Package,
   Truck,
   CheckCircle,
   XCircle,
   Search,
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
   Calendar,
   DollarSign,
   ShoppingBag,
   CreditCard,
-  MapPin,
-  User,
-  Phone,
-  Mail,
-  FileText,
-  Download,
-  Printer,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import InvoicePDF from "./InvoicePDF";
 import InvoiceView from "./InvoiceView";
-import ExportCSV from "./ExportCSV";
+import { api } from "@/config/api";
+
+interface DailySalesData {
+  period: string;
+  date: string;
+  totalSales: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  totalItemsSold: number;
+  totalDiscounts: number;
+}
 
 export default function OrdersPage() {
   const dispatch = useAppDispatch();
@@ -45,18 +43,36 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [confirmingPayment, setConfirmingPayment] = useState<string | null>(
     null,
   );
+  const [todaySales, setTodaySales] = useState<DailySalesData | null>(null);
 
   useEffect(() => {
     dispatch(
       fetchOrders({ page: currentPage, limit: 10, status: statusFilter }),
     );
   }, [dispatch, currentPage, statusFilter]);
+
+  useEffect(() => {
+    fetchTodaySales();
+  }, []);
+
+  const fetchTodaySales = async () => {
+    try {
+      const data = await api.getDailySales();
+      let salesData: DailySalesData | null = null;
+      if (Array.isArray(data) && data.length > 0) {
+        salesData = data[0] as unknown as DailySalesData;
+      } else if (data && typeof data === "object" && !Array.isArray(data)) {
+        salesData = data as unknown as DailySalesData;
+      }
+      setTodaySales(salesData);
+    } catch (error) {
+      console.error("Failed to fetch today's sales:", error);
+    }
+  };
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId);
@@ -65,7 +81,7 @@ export default function OrdersPage() {
         updateOrderStatus({ orderId, status: newStatus }),
       ).unwrap();
       toast.success(`Order status updated to ${newStatus}`);
-    } catch (error) {
+    } catch {
       toast.error("Failed to update order status");
     } finally {
       setUpdatingStatus(null);
@@ -77,16 +93,11 @@ export default function OrdersPage() {
     try {
       await dispatch(confirmPayment(orderId)).unwrap();
       toast.success("Payment confirmed successfully");
-    } catch (error) {
+    } catch {
       toast.error("Failed to confirm payment");
     } finally {
       setConfirmingPayment(null);
     }
-  };
-
-  const handleViewDetails = (order: any) => {
-    setSelectedOrder(order);
-    setIsDetailsModalOpen(true);
   };
 
   const getStatusIcon = (status: string) => {
@@ -127,7 +138,6 @@ export default function OrdersPage() {
     }
   };
 
-  // Filter orders based on search
   const filteredOrders = orders.filter((order) => {
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
@@ -138,24 +148,11 @@ export default function OrdersPage() {
     );
   });
 
-  // Calculate statistics
-  const totalOrders = pagination?.total || 0;
-  const totalRevenue = filteredOrders.reduce(
-    (sum, order) => sum + parseFloat(order.totalAmount),
-    0,
-  );
-  const pendingOrders = filteredOrders.filter(
-    (o) => o.status.toLowerCase() === "pending",
-  ).length;
-  const completedOrders = filteredOrders.filter(
-    (o) => o.status.toLowerCase() === "delivered",
-  ).length;
-
   if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-500">Loading orders...</p>
         </div>
       </div>
@@ -166,12 +163,12 @@ export default function OrdersPage() {
     <div className="space-y-6">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Orders</p>
+              <p className="text-sm text-gray-500">Total Revenue</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                {totalOrders}
+                ৳{(todaySales?.totalSales ?? 0).toLocaleString()}
               </p>
             </div>
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -179,12 +176,13 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Total Revenue</p>
+              <p className="text-sm text-gray-500">Total Orders</p>
               <p className="text-2xl font-bold text-green-600 mt-1">
-                {totalRevenue.toLocaleString()} ৳
+                {todaySales?.totalOrders ?? 0}
               </p>
             </div>
             <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -192,12 +190,13 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Pending Orders</p>
+              <p className="text-sm text-gray-500">Items Sold</p>
               <p className="text-2xl font-bold text-yellow-600 mt-1">
-                {pendingOrders}
+                {todaySales?.totalItemsSold ?? 0}
               </p>
             </div>
             <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -205,12 +204,13 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+
+        <div className="bg-white rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">Delivered</p>
+              <p className="text-sm text-gray-500">Average Order Value</p>
               <p className="text-2xl font-bold text-purple-600 mt-1">
-                {completedOrders}
+                ৳{(todaySales?.averageOrderValue ?? 0).toLocaleString()}
               </p>
             </div>
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -224,7 +224,7 @@ export default function OrdersPage() {
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
             size={18}
           />
           <input
@@ -264,7 +264,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Package size={20} className="text-blue-600" />
@@ -319,14 +319,12 @@ export default function OrdersPage() {
                       </code>
                     </td>
                     <td className="py-3 px-6">
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {order.user.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {order.user.email}
-                        </p>
-                      </div>
+                      <p className="font-medium text-gray-900">
+                        {order.user.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {order.user.email}
+                      </p>
                     </td>
                     <td className="py-3 px-6">
                       <span className="font-bold text-gray-900">
@@ -337,37 +335,14 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-2">
                         {getStatusIcon(order.status)}
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(
-                            order.status,
-                          )}`}
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}
                         >
                           {order.status}
                         </span>
                       </div>
                     </td>
                     <td className="py-3 px-6">
-                      {/* <div className="flex flex-col gap-1">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            order.payment?.status === "paid"
-                              ? "bg-green-100 text-green-700"
-                              : order.payment?.status === "pending"
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          <span>
-                            {order.payment?.status || "N/A"}{" "}
-                            {order.payment?.method && (
-                              <span className="text-xs text-gray-500 capitalize">
-                                {order.payment.method}
-                              </span>
-                            )}
-                          </span>
-                        </span>
-                      </div> */}
                       <div className="flex items-center gap-2">
-                        {/* Status Badge */}
                         <span
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                             order.payment?.status === "paid"
@@ -386,21 +361,15 @@ export default function OrdersPage() {
                                   : "bg-red-500"
                             }`}
                           />
-                          {order.payment?.status || "N/A"}
+                          {order.payment?.status ?? "N/A"}
                         </span>
-
-                        {/* Separator Dot (Optional) */}
                         {order.payment?.method && (
-                          <span className="w-2 h-2 rounded-full bg-gray-300"></span>
-                        )}
-
-                        {/* Payment Method */}
-                        {order.payment?.method && (
-                          <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-                            <span className="capitalize">
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-gray-300" />
+                            <span className="text-xs text-gray-500 capitalize">
                               {order.payment.method}
                             </span>
-                          </span>
+                          </>
                         )}
                       </div>
                     </td>
@@ -412,13 +381,6 @@ export default function OrdersPage() {
                     </td>
                     <td className="py-3 px-6">
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleViewDetails(order)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="View Details"
-                        >
-                          <Eye size={16} />
-                        </button>
                         <InvoiceView order={order} />
                         <InvoicePDF order={order} />
                         {order.payment?.status === "pending" &&
@@ -426,7 +388,7 @@ export default function OrdersPage() {
                             <button
                               onClick={() => handleConfirmPayment(order.id)}
                               disabled={confirmingPayment === order.id}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="p-2 bg-pink-100 text-pink-600 hover:bg-pink-200 rounded-lg transition-colors disabled:opacity-50"
                               title="Confirm Payment"
                             >
                               <CreditCard size={16} />
@@ -477,7 +439,7 @@ export default function OrdersPage() {
                   {Array.from(
                     { length: Math.min(5, pagination.totalPages) },
                     (_, i) => {
-                      let pageNum;
+                      let pageNum: number;
                       if (pagination.totalPages <= 5) {
                         pageNum = i + 1;
                       } else if (currentPage <= 3) {
@@ -519,204 +481,6 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-
-      {/* Order Details Modal with Invoice Actions */}
-      <Modal
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-        title="Order Details"
-      >
-        {selectedOrder && (
-          <div className="space-y-4 max-h-[80vh] overflow-y-auto">
-            {/* Invoice Actions Header */}
-            <div className="flex gap-2 justify-end">
-              <InvoiceView order={selectedOrder} />
-              <InvoicePDF order={selectedOrder} />
-            </div>
-
-            {/* Order Summary */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-gray-500">Order ID</p>
-                  <p className="text-sm font-mono font-medium">
-                    {selectedOrder.id}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Date</p>
-                  <p className="text-sm font-medium">
-                    {new Date(selectedOrder.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Status</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {getStatusIcon(selectedOrder.status)}
-                    <span
-                      className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedOrder.status)}`}
-                    >
-                      {selectedOrder.status}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Payment</p>
-                  <p className="text-sm font-medium capitalize">
-                    {selectedOrder.payment?.method} -{" "}
-                    {selectedOrder.payment?.status}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Customer Info */}
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <User size={16} />
-                Customer Information
-              </h3>
-              <div className="space-y-2">
-                <p className="text-sm">
-                  <span className="text-gray-500">Name:</span>{" "}
-                  {selectedOrder.user.name}
-                </p>
-                <p className="text-sm flex items-center gap-2">
-                  <Mail size={14} className="text-gray-400" />
-                  <span className="text-gray-500">Email:</span>{" "}
-                  {selectedOrder.user.email}
-                </p>
-                <p className="text-sm flex items-center gap-2">
-                  <Phone size={14} className="text-gray-400" />
-                  <span className="text-gray-500">Phone:</span>{" "}
-                  {selectedOrder.user.phone_number}
-                </p>
-              </div>
-            </div>
-
-            {/* Shipping Address */}
-            {selectedOrder.shippingAddress && (
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <MapPin size={16} />
-                  Shipping Address
-                </h3>
-                <div className="space-y-1">
-                  <p className="text-sm">
-                    {selectedOrder.shippingAddress.street}
-                  </p>
-                  <p className="text-sm">
-                    {selectedOrder.shippingAddress.city},{" "}
-                    {selectedOrder.shippingAddress.state}
-                  </p>
-                  <p className="text-sm">
-                    {selectedOrder.shippingAddress.postalCode},{" "}
-                    {selectedOrder.shippingAddress.country}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Order Items with Per-Item Total */}
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Order Items</h3>
-              <div className="space-y-3">
-                {selectedOrder.items?.map((item: any) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between py-2 border-b last:border-0"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">
-                        {item.product.name}
-                      </p>
-                      <div className="flex items-center gap-3 mt-1">
-                        <p className="text-xs text-gray-500">
-                          Quantity: {item.quantity}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          @ {parseFloat(item.price).toLocaleString()} ৳
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">
-                        {(
-                          parseFloat(item.price) * item.quantity
-                        ).toLocaleString()}{" "}
-                        ৳
-                      </p>
-                      <p className="text-xs text-gray-500">Total for item</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 pt-3 border-t">
-                <div className="flex justify-between">
-                  <span className="font-semibold text-gray-900">
-                    Total Amount
-                  </span>
-                  <span className="font-bold text-gray-900 text-lg">
-                    {parseFloat(selectedOrder.totalAmount).toLocaleString()} ৳
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3 pt-2">
-              <InvoicePDF order={selectedOrder} />
-              <Button
-                onClick={() => {
-                  // Export as JSON
-                  const orderData = {
-                    "Order ID": selectedOrder.id,
-                    "Customer Name": selectedOrder.user.name,
-                    "Customer Email": selectedOrder.user.email,
-                    "Customer Phone": selectedOrder.user.phone_number,
-                    "Total Amount": selectedOrder.totalAmount,
-                    Status: selectedOrder.status,
-                    "Payment Status": selectedOrder.payment?.status,
-                    "Payment Method": selectedOrder.payment?.method,
-                    "Order Date": new Date(
-                      selectedOrder.createdAt,
-                    ).toLocaleString(),
-                    "Paid Date": selectedOrder.payment?.paidAt
-                      ? new Date(selectedOrder.payment.paidAt).toLocaleString()
-                      : "N/A",
-                    "Shipping Address": selectedOrder.shippingAddress
-                      ? `${selectedOrder.shippingAddress.street}, ${selectedOrder.shippingAddress.city}, ${selectedOrder.shippingAddress.state}, ${selectedOrder.shippingAddress.postalCode}, ${selectedOrder.shippingAddress.country}`
-                      : "N/A",
-                    Items: selectedOrder.items
-                      ?.map(
-                        (item: any) =>
-                          `${item.product.name} (x${item.quantity} - $${(parseFloat(item.price) * item.quantity).toLocaleString()})`,
-                      )
-                      .join("; "),
-                  };
-
-                  const dataStr = JSON.stringify(orderData, null, 2);
-                  const dataUri =
-                    "data:application/json;charset=utf-8," +
-                    encodeURIComponent(dataStr);
-                  const exportFileDefaultName = `order_${selectedOrder.id.slice(-8)}_details.json`;
-                  const linkElement = document.createElement("a");
-                  linkElement.setAttribute("href", dataUri);
-                  linkElement.setAttribute("download", exportFileDefaultName);
-                  linkElement.click();
-
-                  toast.success("Order details exported as JSON");
-                }}
-                variant="secondary"
-                className="flex-1 gap-2"
-              >
-                <Download size={16} />
-                Export JSON
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }
