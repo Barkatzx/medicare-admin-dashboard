@@ -339,12 +339,11 @@ export default function ProductsPage() {
                       >
                         <td className="py-3 px-6">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
                               {imageUrl ? (
                                 <img
                                   src={imageUrl}
-                                  alt={product.name}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-cover rounded-full"
                                   onError={(e) => {
                                     (
                                       e.target as HTMLImageElement
