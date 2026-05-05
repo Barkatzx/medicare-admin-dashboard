@@ -190,12 +190,15 @@ export default function InvoicePDF({ order }: InvoicePDFProps) {
             <div class="info-grid">
               <div>
                 <div class="info-label">Customer Name</div>
-                <div class="info-value">${order.user.pharmacy_name || "N/A"}</div>
+                <div class="info-value">${order.user.name}</div>
                 <div class="info-label" style="margin-top: 8px;">Phone</div>
                 <div class="info-value">${order.user.phone_number}</div>
               </div>
               <div>
-                <div class="info-label">Shipping Address</div>
+
+                <div class="info-label">Pharmacy Name</div>
+                <div class="info-value">${order.user.pharmacy_name}</div>
+                <div class="info-label" style="margin-top: 8px;">Shipping Address</div>
                 ${
                   order.shippingAddress
                     ? `
@@ -205,7 +208,9 @@ export default function InvoicePDF({ order }: InvoicePDFProps) {
                 `
                     : '<div class="info-value">No shipping address available</div>'
                 }
+                
               </div>
+              
             </div>
           </div>
 

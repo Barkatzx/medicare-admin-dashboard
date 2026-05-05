@@ -205,7 +205,7 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Average Order Value</p>
@@ -321,9 +321,10 @@ export default function OrdersPage() {
                     <td className="py-3 px-6">
                       <p className="font-medium text-gray-900">
                         {order.user.name}
+                        {/* {order.user.pharmacy_name} */}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {order.user.email}
+                        {order.user.phone_number}
                       </p>
                     </td>
                     <td className="py-3 px-6">
