@@ -190,7 +190,7 @@ export default function Summary() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+          <div className="p-2.5 bg-blue-600 rounded-xl">
             <CreditCard size={18} className="text-white" />
           </div>
           <div>
@@ -228,17 +228,17 @@ export default function Summary() {
 
       {/* Stats Summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-100">
+        <div className="rounded-xl p-4 border border-gray-100">
           <p className="text-xs text-gray-500">Total Revenue</p>
           <p className="text-xl font-bold text-gray-900 mt-1">
             ৳{totalRevenue.toLocaleString()}
           </p>
         </div>
-        <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-100">
+        <div className="rounded-xl p-4 border border-gray-100">
           <p className="text-xs text-gray-500">Total Orders</p>
           <p className="text-xl font-bold text-gray-900 mt-1">{totalOrders}</p>
         </div>
-        <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-4 border border-gray-100">
+        <div className="rounded-xl p-4 border border-gray-100">
           <p className="text-xs text-gray-500">Completion Rate</p>
           <p className="text-xl font-bold text-green-600 mt-1">
             {completionRate.toFixed(1)}%
@@ -247,7 +247,7 @@ export default function Summary() {
       </div>
 
       {/* Chart Section */}
-      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+      <div className="rounded-2xl p-6 border border-gray-100">
         {chartType === "pie" ? (
           <div className="relative">
             <ResponsiveContainer width="100%" height={320}>
