@@ -701,7 +701,6 @@ export default function ReportsPage() {
                         <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                           <img
                             src={product.images[0].url}
-                            alt={product.name}
                             className="w-full h-full object-cover"
                           />
                         </div>
