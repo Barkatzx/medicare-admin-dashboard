@@ -340,7 +340,7 @@ export default function Summary() {
           return (
             <div
               key={item.status}
-              className="group relative overflow-hidden rounded-xl p-3 border border-gray-100 bg-white hover:shadow-md transition-all cursor-pointer flex-1 min-w-[140px]"
+              className="group relative overflow-hidden rounded-xl p-3 border border-gray-100 bg-white transition-all cursor-pointer flex-1 min-w-[140px]"
               onMouseEnter={() => setSelectedStatus(item.status)}
               onMouseLeave={() => setSelectedStatus(null)}
             >
