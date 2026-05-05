@@ -76,7 +76,7 @@ export default function DashboardStats() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 p-12 text-center border border-gray-100 shadow-sm">
         <div className="absolute inset-0 bg-grid-pattern opacity-5" />
         <div className="relative">
-          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-red-100 to-red-200 rounded-2xl flex items-center justify-center shadow-lg">
+          <div className="w-20 h-20 mx-auto mb-6 bg-red-100 rounded-2xl flex items-center justify-center shadow-lg">
             <AlertCircle size={40} className="text-red-500" />
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">

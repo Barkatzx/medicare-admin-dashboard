@@ -5,7 +5,6 @@ import { useEffect, useMemo } from "react";
 import {
   AreaChart,
   Area,
-  LineChart,
   Line,
   ComposedChart,
   Bar,
@@ -45,7 +44,7 @@ const CustomTooltip = ({
 }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-xl p-4 min-w-[180px]">
+    <div className="border border-gray-100 rounded-xl shadow-xl p-4 min-w-[180px]">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
         {label}
       </p>
