@@ -1,7 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
-import ClientProviders from "./ClientProviders";
+import ClientProviders from "../components/provider/ClientProviders";
 
 export const metadata: Metadata = {
   title: "MediCarePLC Admin Dashboard",

@@ -1,7 +1,7 @@
 // src/components/dashboard/DashboardStats.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchDashboardStats } from "@/store/slices/dashboardSlice";
 import {
@@ -13,8 +13,6 @@ import {
   TrendingDown,
   Calendar,
   Clock,
-  BarChart3,
-  Activity,
   Zap,
   Target,
   Award,
@@ -23,10 +21,11 @@ import {
   AlertCircle,
   RefreshCw,
   TrendingUp as TrendingUpIcon,
-  Store,
-  CreditCard,
   ShoppingBag,
   UserCheck,
+  BarChart3,
+  LineChart,
+  Activity,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 
@@ -72,7 +71,6 @@ export default function DashboardStats() {
     dispatch(fetchDashboardStats());
   };
 
-  // Error state with modern design
   if (error && !statsData) {
     return (
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 p-12 text-center border border-gray-100 shadow-sm">
@@ -108,6 +106,7 @@ export default function DashboardStats() {
     return null;
   }
 
+  // Period Stats with Growth
   const periodStats = [
     {
       title: "Today",
@@ -119,6 +118,7 @@ export default function DashboardStats() {
       gradient: "from-orange-500 to-red-500",
       bgGradient: "from-orange-50 to-red-50",
       borderGradient: "from-orange-200 to-red-200",
+      period: "Today",
     },
     {
       title: "This Week",
@@ -130,6 +130,7 @@ export default function DashboardStats() {
       gradient: "from-blue-500 to-cyan-500",
       bgGradient: "from-blue-50 to-cyan-50",
       borderGradient: "from-blue-200 to-cyan-200",
+      period: "This Week",
     },
     {
       title: "This Month",
@@ -141,6 +142,7 @@ export default function DashboardStats() {
       gradient: "from-purple-500 to-pink-500",
       bgGradient: "from-purple-50 to-pink-50",
       borderGradient: "from-purple-200 to-pink-200",
+      period: "This Month",
     },
     {
       title: "This Year",
@@ -152,6 +154,7 @@ export default function DashboardStats() {
       gradient: "from-emerald-500 to-teal-500",
       bgGradient: "from-emerald-50 to-teal-50",
       borderGradient: "from-emerald-200 to-teal-200",
+      period: "This Year",
     },
   ];
 
@@ -205,13 +208,31 @@ export default function DashboardStats() {
 
   const maxRevenue = getMaxRevenue();
 
+  // Find best performing period
+  const periods = [
+    { name: "Today", revenue: statsData?.today?.sales || 0 },
+    { name: "This Week", revenue: statsData?.this_week?.sales || 0 },
+    { name: "This Month", revenue: statsData?.this_month?.sales || 0 },
+    { name: "This Year", revenue: statsData?.this_year?.sales || 0 },
+  ];
+  const bestPeriod = periods.reduce(
+    (max, p) => (p.revenue > max.revenue ? p : max),
+    periods[0],
+  );
+
+  // Calculate average order value
+  const avgOrderValue =
+    statsData?.lifetime?.orders && statsData?.lifetime?.orders > 0
+      ? (statsData?.lifetime?.sales || 0) / (statsData?.lifetime?.orders || 1)
+      : 0;
+
   return (
     <div className="space-y-8">
       {/* Period Statistics Section - Modern Cards */}
       <div>
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
+            <div className="p-2.5 rounded-xl bg-blue-500">
               <Clock size={20} className="text-white" />
             </div>
             <div>
@@ -228,7 +249,7 @@ export default function DashboardStats() {
             <span className="text-xs text-gray-500">Live updates</span>
           </div>
         </div>
-
+        {/* Daily, weekly, monthly, and yearly performance metrics with growth indicators */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {periodStats.map((stat) => {
             const Icon = stat.icon;
@@ -241,26 +262,21 @@ export default function DashboardStats() {
             return (
               <div
                 key={stat.title}
-                className="group relative overflow-hidden rounded-2xl bg-white transition-all duration-300  hover:-translate-y-2 border border-gray-100"
+                className="group relative overflow-hidden rounded-2xl bg-white border border-gray-100"
               >
-                {/* Animated Gradient Border */}
-                <div
-                  className={`absolute inset-0 bg-gradient-to-r ${stat.borderGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl -z-10`}
-                />
-
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
-                />
-
                 <div className="relative z-10 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div
-                      className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg transform transition-transform duration-300 group-hover:scale-110`}
+                      className={`p-3 rounded-xl bg-gradient-to-br ${stat.gradient}`}
                     >
                       <Icon size={20} className="text-white" />
                     </div>
                     <div
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        isPositive
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
                     >
                       {isPositive ? (
                         <ArrowUpRight size={12} />
@@ -275,7 +291,7 @@ export default function DashboardStats() {
                     <p className="text-sm text-gray-500 mb-1 font-medium">
                       {stat.title}
                     </p>
-                    <p className="text-3xl font-bold text-gray-900 tracking-tight">
+                    <p className="text-2xl font-bold text-gray-900 tracking-tight">
                       {currencySymbol}
                       {formattedRevenue}
                     </p>
@@ -319,7 +335,7 @@ export default function DashboardStats() {
       {/* Lifetime Statistics Section - Premium Cards */}
       <div>
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 shadow-lg">
+          <div className="p-2.5 rounded-xl bg-blue-500 shadow-lg">
             <Target size={20} className="text-white" />
           </div>
           <div>
@@ -355,17 +371,12 @@ export default function DashboardStats() {
             return (
               <div
                 key={stat.label}
-                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 p-6 transition-all duration-300  hover:-translate-y-2 border border-gray-100"
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white to-gray-50 p-6 border border-gray-100"
               >
-                {/* Animated Shine Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-30 -translate-x-full group-hover:translate-x-full transition-all duration-1000" />
-
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br opacity-10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
-
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div
-                      className={`p-3 rounded-xl bg-gradient-to-br ${gradients[index]} shadow-lg transform transition-transform duration-300 group-hover:scale-110`}
+                      className={`p-3 rounded-xl bg-gradient-to-br ${gradients[index]}`}
                     >
                       <Icon size={20} className="text-white" />
                     </div>
@@ -380,7 +391,7 @@ export default function DashboardStats() {
                     <p className="text-sm text-gray-500 mb-1 font-medium">
                       {stat.label}
                     </p>
-                    <p className="text-3xl font-bold text-gray-900 tracking-tight">
+                    <p className="text-2xl font-bold text-gray-900 tracking-tight">
                       {stat.prefix}
                       {formattedValue}
                     </p>
@@ -402,83 +413,42 @@ export default function DashboardStats() {
       {/* Quick Insights Section - Modern Analytics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Best Performing Period Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-white shadow-lg group hover:shadow-xl transition-all duration-300">
-          <div className="absolute inset-0 bg-grid-pattern-white opacity-5" />
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-500" />
-
-          <div className="relative flex items-start justify-between mb-4">
+        <div className="rounded-2xl text-black border border-gray-100 p-4 bg-gray-50">
+          <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur shadow-lg">
-                <TrendingUpIcon size={18} className="text-white" />
+              <div className="p-2.5 bg-blue-500 rounded-xl">
+                <TrendingUpIcon size={20} className="text-white" />
               </div>
-              <h3 className="font-semibold text-white/90">
-                Best Performing Period
-              </h3>
+              <h3 className="font-semibold">Best Performing Period</h3>
             </div>
           </div>
 
           <p className="text-3xl font-bold">
-            {(() => {
-              const periods = [
-                { name: "Today", revenue: statsData?.today?.sales || 0 },
-                {
-                  name: "This Week",
-                  revenue: statsData?.this_week?.sales || 0,
-                },
-                {
-                  name: "This Month",
-                  revenue: statsData?.this_month?.sales || 0,
-                },
-                {
-                  name: "This Year",
-                  revenue: statsData?.this_year?.sales || 0,
-                },
-              ];
-              const best = periods.reduce(
-                (max, p) => (p.revenue > max.revenue ? p : max),
-                periods[0],
-              );
-              return best.revenue > 0
-                ? `${best.name} — ${currencySymbol}${best.revenue.toLocaleString()}`
-                : "No data available";
-            })()}
+            {bestPeriod.revenue > 0
+              ? `${bestPeriod.name} — ${currencySymbol}${bestPeriod.revenue.toLocaleString()}`
+              : "No data available"}
           </p>
-          <p className="text-blue-100 text-sm mt-2">
-            Highest revenue generating period
-          </p>
+          <p className="text-sm mt-2">Highest revenue generating period</p>
         </div>
 
         {/* Average Order Value Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-pink-600 p-6 text-white shadow-lg group hover:shadow-xl transition-all duration-300">
-          <div className="absolute inset-0 bg-grid-pattern-white opacity-5" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-16 -translate-x-16 group-hover:scale-150 transition-transform duration-500" />
-
-          <div className="relative flex items-start justify-between mb-4">
+        <div className="rounded-2xl text-black border border-gray-100 p-4 bg-gray-50">
+          <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur shadow-lg">
-                <ShoppingCart size={18} className="text-white" />
+              <div className="p-2.5 bg-green-600 rounded-xl">
+                <ShoppingCart size={20} className="text-white" />
               </div>
-              <h3 className="font-semibold text-white/90">
-                Average Order Value
-              </h3>
+              <h3 className="font-semibold">Average Order Value</h3>
             </div>
           </div>
-
           <p className="text-3xl font-bold">
             {currencySymbol}
-            {statsData?.lifetime?.orders && statsData?.lifetime?.orders > 0
-              ? (
-                  (statsData?.lifetime?.sales || 0) /
-                  (statsData?.lifetime?.orders || 1)
-                ).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })
-              : "0.00"}
+            {avgOrderValue.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           </p>
-          <p className="text-purple-100 text-sm mt-2">
-            Average spent per transaction
-          </p>
+          <p className="text-sm mt-2">Average spent per transaction</p>
 
           <div className="absolute bottom-4 right-4 opacity-20">
             <TrendingUpIcon size={32} />

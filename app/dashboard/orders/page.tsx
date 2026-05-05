@@ -21,8 +21,8 @@ import {
   CreditCard,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import InvoicePDF from "./InvoicePDF";
-import InvoiceView from "./InvoiceView";
+import InvoicePDF from "../../../components/orders/InvoicePDF";
+import InvoiceView from "../../../components/orders/InvoiceView";
 import { api } from "@/config/api";
 
 interface DailySalesData {

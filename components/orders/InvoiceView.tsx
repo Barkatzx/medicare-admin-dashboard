@@ -45,7 +45,6 @@ export default function InvoiceView({ order }: InvoiceViewProps) {
             <p className="text-sm text-gray-500">
               Your Trusted Healthcare Partner
             </p>
-            <h3 className="text-lg font-semibold mt-2">TAX INVOICE</h3>
           </div>
 
           {/* Invoice Info */}
@@ -76,8 +75,7 @@ export default function InvoiceView({ order }: InvoiceViewProps) {
           <div className="border rounded-lg p-4">
             <h4 className="font-semibold mb-2">Bill To:</h4>
             <div className="space-y-1 text-sm">
-              <p>{order.user.name}</p>
-              <p>{order.user.email}</p>
+              <p>{order.user.pharmacy_name}</p>
               <p>{order.user.phone_number}</p>
               {order.shippingAddress && (
                 <>

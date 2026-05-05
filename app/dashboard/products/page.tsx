@@ -21,8 +21,8 @@ import {
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import toast from "react-hot-toast";
-import ProductForm from "./ProductForm";
-import StockManagementModal from "./StockManagementModal";
+import ProductForm from "../../../components/products/ProductForm";
+import StockManagementModal from "../../../components/products/StockManagementModal";
 import { Product } from "@/config/api";
 
 export default function ProductsPage() {

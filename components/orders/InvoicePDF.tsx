@@ -190,7 +190,7 @@ export default function InvoicePDF({ order }: InvoicePDFProps) {
             <div class="info-grid">
               <div>
                 <div class="info-label">Customer Name</div>
-                <div class="info-value">${order.user.name}</div>
+                <div class="info-value">${order.user.pharmacy_name || "N/A"}</div>
                 <div class="info-label" style="margin-top: 8px;">Phone</div>
                 <div class="info-value">${order.user.phone_number}</div>
               </div>

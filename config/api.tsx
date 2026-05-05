@@ -15,7 +15,7 @@ export interface User {
 
 export interface Product {
   id: string;
-  name: string;
+  name: string | null;
   description: string;
   price: number;
   discountedPrice: number | null;
@@ -70,6 +70,7 @@ export interface Order {
     name: string;
     email: string;
     phone_number: string;
+    pharmacy_name: string | null;
   };
   items: OrderItem[];
   payment: Payment;
@@ -991,31 +992,16 @@ class API {
     }
   }
 
-  // async getDailySales(): Promise<DailySalesData[]> {
-  //   const data = await this.request("/sales/daily");
-  //   return Array.isArray(data) ? data : [];
-  // }
-  async getDailySales(): Promise<DailySalesData | null> {
-    const data = await this.request("/sales/daily");
-    // If it's an array, return the first item
-    if (Array.isArray(data) && data.length > 0) {
-      return data[0];
-    }
-    // If it's a single object
-    if (data && typeof data === "object" && !Array.isArray(data)) {
-      return data;
-    }
-    return null;
+  async getDailySales(): Promise<any> {
+    return this.request("/sales/daily");
   }
 
-  async getWeeklySales(): Promise<WeeklySalesData[]> {
-    const data = await this.request("/sales/weekly");
-    return Array.isArray(data) ? data : [];
+  async getWeeklySales(): Promise<any> {
+    return this.request("/sales/weekly");
   }
 
-  async getMonthlySales(): Promise<MonthlySalesData[]> {
-    const data = await this.request("/sales/monthly");
-    return Array.isArray(data) ? data : [];
+  async getMonthlySales(): Promise<any> {
+    return this.request("/sales/monthly");
   }
 
   async getSalesSummary(): Promise<SalesSummaryData> {
