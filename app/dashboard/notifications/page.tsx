@@ -1,4 +1,3 @@
-// src/app/dashboard/notifications/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";

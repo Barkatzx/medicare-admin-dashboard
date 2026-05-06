@@ -1,4 +1,3 @@
-// src/app/login/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { login } from "@/store/slices/authSlice";
 import Button from "@/components/ui/Button";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, Shield } from "lucide-react";
 import toast from "react-hot-toast";
 import Spinner from "@/components/ui/Spinner";
 
@@ -61,7 +60,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto h-12 w-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
-            <Lock className="h-6 w-6 text-blue-600" />
+            <Shield className="h-6 w-6 text-blue-600" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900">Admin Login</h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -142,6 +141,17 @@ export default function LoginPage() {
             )}
           </Button>
         </form>
+        <div className="flex justify-center gap-2 bg-red-100 p-4 rounded-lg border border-red-200 text-sm">
+          <p>
+            <Lock size={16} className="inline text-red-500" />{" "}
+          </p>
+          <p>
+            <span className="text-red-500">
+              Only for authorized person. Please contact your administrator if
+              you need access.
+            </span>
+          </p>
+        </div>
       </div>
     </div>
   );

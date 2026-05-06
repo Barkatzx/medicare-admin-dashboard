@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -7,12 +6,11 @@ import { fetchProducts } from "@/store/slices/productSlice";
 import { fetchUsers } from "@/store/slices/userSlice";
 import { fetchOrders } from "@/store/slices/orderSlice";
 import Card from "@/components/ui/Card";
-import DashboardStats from "@/app/dashboard/DashboardStats";
+import DashboardStats from "@/components/dashboards/DashboardStats";
 import dynamic from "next/dynamic";
 import {
   ShoppingBag,
   ChevronRight,
-  DollarSign,
   Calendar,
   Package,
   TrendingUp,
