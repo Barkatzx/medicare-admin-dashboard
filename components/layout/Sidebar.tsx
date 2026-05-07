@@ -19,6 +19,9 @@ import {
   Sparkles,
   FolderCheck,
   Layers2,
+  Leaf,
+  AreaChart,
+  ShoppingBag,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -52,18 +55,24 @@ const menuItems = [
   {
     name: "Orders",
     href: "/dashboard/orders",
-    icon: ShoppingCart,
+    icon: ShoppingBag,
     description: "Track shipments",
   },
   {
     name: "Reports",
     href: "/dashboard/reports",
-    icon: BarChart3,
+    icon: AreaChart,
     description: "Sales analytics",
   },
 ];
 
 const bottomMenuItems = [
+  {
+    name: "Documentation",
+    href: "/dashboard/documentation",
+    icon: Leaf,
+    description: "User guides",
+  },
   {
     name: "Settings",
     href: "/dashboard/settings",
