@@ -404,26 +404,10 @@ export default function ProductForm({
 
   return (
     <>
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5 max-h-[85vh] overflow-y-auto px-2"
-      >
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Header */}
-        <div className="mb-4 pb-3 border-b border-gray-100">
+        <div>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
-                <Package size={16} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {product ? "Edit Product" : "Create New Product"}
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Fill in the product details below
-                </p>
-              </div>
-            </div>
             {product && (
               <button
                 type="button"
