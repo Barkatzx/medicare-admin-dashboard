@@ -38,7 +38,7 @@ export default function InvoiceView({ order }: InvoiceViewProps) {
         onClose={() => setIsOpen(false)}
         title="Invoice Preview"
       >
-        <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+        <div className="space-y-6">
           {/* Invoice Header */}
           <div className="text-center border-b pb-4">
             <h2 className="text-2xl font-bold text-blue-600">MediCare</h2>
