@@ -19,7 +19,7 @@ import {
   DollarSign,
   ShoppingBag,
   CreditCard,
-  Users,
+  Clock,
   TrendingUp,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -27,11 +27,12 @@ import InvoicePDF from "../../../components/orders/InvoicePDF";
 import InvoiceView from "../../../components/orders/InvoiceView";
 import { api, DashboardData } from "@/config/api";
 
-export default function OrdersPage() {
+export default function PendingOrdersPage() {
   const dispatch = useAppDispatch();
   const { orders, pagination, loading } = useAppSelector(
     (state) => state.orders,
   );
+  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
@@ -42,9 +43,9 @@ export default function OrdersPage() {
 
   useEffect(() => {
     dispatch(
-      fetchOrders({ page: currentPage, limit: 10, status: "delivered" }),
+      fetchOrders({ page: currentPage, limit: 10, status: statusFilter }),
     );
-  }, [dispatch, currentPage]);
+  }, [dispatch, currentPage, statusFilter]);
 
   useEffect(() => {
     fetchStats();
@@ -66,7 +67,7 @@ export default function OrdersPage() {
         updateOrderStatus({ orderId, status: newStatus }),
       ).unwrap();
       toast.success(`Order status updated to ${newStatus}`);
-      fetchStats();
+      fetchStats(); // Refresh stats after update
     } catch {
       toast.error("Failed to update order status");
     } finally {
@@ -74,10 +75,33 @@ export default function OrdersPage() {
     }
   };
 
+  const handleConfirmPayment = async (orderId: string) => {
+    setConfirmingPayment(orderId);
+    try {
+      await dispatch(confirmPayment(orderId)).unwrap();
+      toast.success("Payment confirmed successfully");
+      fetchStats();
+    } catch {
+      toast.error("Failed to confirm payment");
+    } finally {
+      setConfirmingPayment(null);
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
+      case "pending":
+        return <Package size={16} className="text-yellow-600" />;
+      case "confirmed":
+        return <CheckCircle size={16} className="text-blue-600" />;
+      case "processing":
+        return <Truck size={16} className="text-purple-600" />;
+      case "shipped":
+        return <Truck size={16} className="text-indigo-600" />;
       case "delivered":
         return <CheckCircle size={16} className="text-green-600" />;
+      case "cancelled":
+        return <XCircle size={16} className="text-red-600" />;
       default:
         return null;
     }
@@ -85,15 +109,25 @@ export default function OrdersPage() {
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-700";
+      case "confirmed":
+        return "bg-blue-100 text-blue-700";
+      case "processing":
+        return "bg-purple-100 text-purple-700";
+      case "shipped":
+        return "bg-indigo-100 text-indigo-700";
       case "delivered":
         return "bg-green-100 text-green-700";
+      case "cancelled":
+        return "bg-red-100 text-red-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
   };
 
   const filteredOrders = orders.filter((order) => {
-    if (order.status.toLowerCase() !== "delivered") return false;
+    if (order.status.toLowerCase() === "delivered") return false;
     
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
@@ -109,7 +143,7 @@ export default function OrdersPage() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Loading delivered orders...</p>
+          <p className="text-gray-500">Loading pending orders...</p>
         </div>
       </div>
     );
@@ -117,34 +151,19 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards - Showing Lifetime Analytics */}
+      {/* Stats Cards - Showing Today's Analytics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Lifetime Revenue</p>
+              <p className="text-sm text-gray-500 font-medium">Today's Orders</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                ৳{(dashboardStats?.lifetime.sales ?? 0).toLocaleString()}
+                {dashboardStats?.today.orders ?? 0}
               </p>
               <div className="flex items-center gap-1 mt-1">
-                <TrendingUp size={12} className="text-green-500" />
-                <p className="text-[10px] text-gray-400">Monthly growth: {dashboardStats?.growth.monthly.toFixed(1) ?? 0}%</p>
+                <TrendingUp size={12} className={dashboardStats?.growth.daily && dashboardStats.growth.daily > 0 ? "text-green-500" : "text-gray-400"} />
+                <p className="text-[10px] text-gray-400">Daily growth: {dashboardStats?.growth.daily.toFixed(1) ?? 0}%</p>
               </div>
-            </div>
-            <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
-              <DollarSign size={20} className="text-indigo-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Total Orders</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">
-                {dashboardStats?.lifetime.orders ?? 0}
-              </p>
-              <p className="text-[10px] text-gray-400 mt-1">Completed successfully</p>
             </div>
             <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
               <ShoppingBag size={20} className="text-blue-600" />
@@ -152,12 +171,26 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Products Sold</p>
+              <p className="text-sm text-gray-500 font-medium">Today's Revenue</p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">
+                ৳{(dashboardStats?.today.sales ?? 0).toLocaleString()}
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
+              <DollarSign size={20} className="text-emerald-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl p-4 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Items Ordered</p>
               <p className="text-2xl font-bold text-amber-600 mt-1">
-                {dashboardStats?.lifetime.products_sold ?? 0}
+                {dashboardStats?.today.items ?? 0}
               </p>
             </div>
             <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
@@ -166,22 +199,23 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-4 border border-gray-100">
+        <div className="rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Unique Customers</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">
-                {dashboardStats?.lifetime.customers ?? 0}
+              <p className="text-sm text-gray-500 font-medium">Action Required</p>
+              <p className="text-2xl font-bold text-rose-600 mt-1">
+                {filteredOrders.length}
               </p>
+              <p className="text-[10px] text-gray-400 mt-1">Pending processing</p>
             </div>
-            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-              <Users size={20} className="text-emerald-600" />
+            <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
+              <Clock size={20} className="text-rose-600" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search */}
+      {/* Filters and Search */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search
@@ -190,11 +224,36 @@ export default function OrdersPage() {
           />
           <input
             type="text"
-            placeholder="Search delivered orders by ID or customer..."
+            placeholder="Search pending orders..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {[
+            "all",
+            "pending",
+            "confirmed",
+            "processing",
+            "shipped",
+            "cancelled",
+          ].map((status) => (
+            <button
+              key={status}
+              onClick={() => {
+                setStatusFilter(status);
+                setCurrentPage(1);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
+                statusFilter === status
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
+              }`}
+            >
+              {status}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -202,17 +261,17 @@ export default function OrdersPage() {
       <div className="rounded-xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <CheckCircle size={20} className="text-green-600" />
-            Delivered Orders ({filteredOrders.length})
+            <Package size={20} className="text-blue-600" />
+            Active Order List ({filteredOrders.length})
           </h2>
         </div>
 
         {filteredOrders.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle size={24} className="text-gray-400" />
+              <Package size={24} className="text-gray-400" />
             </div>
-            <p className="text-gray-500">No delivered orders found</p>
+            <p className="text-gray-500">No pending orders found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -282,18 +341,30 @@ export default function OrdersPage() {
                           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                             order.payment?.status === "paid"
                               ? "bg-green-100 text-green-700 ring-1 ring-green-200"
-                              : "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200"
+                              : order.payment?.status === "pending"
+                                ? "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200"
+                                : "bg-red-100 text-red-700 ring-1 ring-red-200"
                           }`}
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
                               order.payment?.status === "paid"
                                 ? "bg-green-500"
-                                : "bg-yellow-500"
+                                : order.payment?.status === "pending"
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
                             }`}
                           />
                           {order.payment?.status ?? "N/A"}
                         </span>
+                        {order.payment?.method && (
+                          <>
+                            <span className="w-2 h-2 rounded-full bg-gray-300" />
+                            <span className="text-xs text-gray-500 capitalize">
+                              {order.payment.method}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </td>
                     <td className="py-3 px-6">
@@ -306,6 +377,17 @@ export default function OrdersPage() {
                       <div className="flex items-center gap-2">
                         <InvoiceView order={order} />
                         <InvoicePDF order={order} />
+                        {order.payment?.status === "pending" &&
+                          order.payment?.method === "cod" && (
+                            <button
+                              onClick={() => handleConfirmPayment(order.id)}
+                              disabled={confirmingPayment === order.id}
+                              className="p-2 bg-pink-100 text-pink-600 hover:bg-pink-200 rounded-lg transition-colors disabled:opacity-50"
+                              title="Confirm Payment"
+                            >
+                              <CreditCard size={16} />
+                            </button>
+                          )}
                         <select
                           value={order.status.toLowerCase()}
                           onChange={(e) =>
@@ -314,6 +396,10 @@ export default function OrdersPage() {
                           disabled={updatingStatus === order.id}
                           className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         >
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
                           <option value="delivered">Delivered</option>
                           <option value="cancelled">Cancelled</option>
                         </select>

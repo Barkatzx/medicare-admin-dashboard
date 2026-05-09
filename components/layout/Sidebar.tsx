@@ -23,6 +23,10 @@ import {
   TrendingUp,
   Grid3X3,
   Star,
+  Clock,
+  UserCheck,
+  Truck,
+  CheckCircle,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -64,26 +68,54 @@ const productSubItems = [
   },
 ];
 
+// Users submenu items
+const userSubItems = [
+  {
+    name: "Pending",
+    href: "/dashboard/pending-users",
+    icon: Clock,
+    description: "Approve registrations",
+    color: "text-amber-500",
+    bg: "bg-amber-50",
+  },
+  {
+    name: "Active",
+    href: "/dashboard/users",
+    icon: UserCheck,
+    description: "Manage customers",
+    color: "text-emerald-500",
+    bg: "bg-emerald-50",
+  },
+];
+
+// Orders submenu items
+const orderSubItems = [
+  {
+    name: "Pending",
+    href: "/dashboard/pending-orders",
+    icon: Clock,
+    description: "Manage active orders",
+    color: "text-blue-500",
+    bg: "bg-blue-50",
+  },
+  {
+    name: "Delivered",
+    href: "/dashboard/orders",
+    icon: CheckCircle,
+    description: "Completed shipments",
+    color: "text-green-500",
+    bg: "bg-green-50",
+  },
+];
+
 const menuItems = [
   {
-    name: "Dashboard",
+    name: "Analytics",
     href: "/dashboard",
     icon: LayoutDashboard,
     description: "Overview & analytics",
   },
-  {
-    name: "Users",
-    href: "/dashboard/users",
-    icon: Users,
-    description: "Manage customers",
-  },
-  // Products is handled separately as a dropdown
-  {
-    name: "Orders",
-    href: "/dashboard/orders",
-    icon: ShoppingBag,
-    description: "Track shipments",
-  },
+  // Users, Inventory, and Orders are handled separately as dropdowns
   {
     name: "Reports",
     href: "/dashboard/reports",
@@ -113,14 +145,21 @@ const bottomMenuItems = [
   },
 ];
 
-// Check if current path is under products
+// Path helpers
 const isProductsPath = (pathname: string) =>
-  [
-    "/dashboard/products",
-    "/dashboard/trending",
-    "/dashboard/featured",
-    "/dashboard/categories",
-  ].some((p) => pathname === p || pathname.startsWith(p + "/"));
+  productSubItems.some(
+    (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/"),
+  );
+
+const isUsersPath = (pathname: string) =>
+  userSubItems.some(
+    (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/"),
+  );
+
+const isOrdersPath = (pathname: string) =>
+  orderSubItems.some(
+    (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/"),
+  );
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -130,14 +169,20 @@ export default function Sidebar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+
   const [productsOpen, setProductsOpen] = useState(() =>
     isProductsPath(pathname),
   );
+  const [usersOpen, setUsersOpen] = useState(() => isUsersPath(pathname));
+  const [ordersOpen, setOrdersOpen] = useState(() => isOrdersPath(pathname));
+
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Auto-open products dropdown if a products path is active
+  // Auto-open dropdowns if path is active
   useEffect(() => {
     if (isProductsPath(pathname)) setProductsOpen(true);
+    if (isUsersPath(pathname)) setUsersOpen(true);
+    if (isOrdersPath(pathname)) setOrdersOpen(true);
   }, [pathname]);
 
   useEffect(() => {
@@ -187,11 +232,13 @@ export default function Sidebar() {
   const showText = !isCollapsed || isHovered;
   const sidebarWidth = isCollapsed ? "w-20" : "w-64";
   const productsActive = isProductsPath(pathname);
+  const usersActive = isUsersPath(pathname);
+  const ordersActive = isOrdersPath(pathname);
 
   return (
     <>
       <aside
-        className={`fixed left-3 top-3 bottom-3 ${sidebarWidth} bg-white rounded-2xl flex flex-col transition-all duration-300 z-30 border border-gray-100 shadow-sm`}
+        className={`fixed left-3 top-3 bottom-3 ${sidebarWidth} bg-white rounded-2xl flex flex-col transition-all duration-300 z-30 border border-gray-100`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -238,9 +285,9 @@ export default function Sidebar() {
                   Main Menu
                 </p>
               )}
-              <div>
-                {/* Dashboard & Users */}
-                {menuItems.slice(0, 2).map((item) => {
+              <div className="space-y-1">
+                {/* Analytics */}
+                {menuItems.slice(0, 1).map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
                   return (
@@ -251,20 +298,12 @@ export default function Sidebar() {
                         group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
                         transition-all duration-200
                         ${isCollapsed ? "justify-center" : ""}
-                        ${
-                          isActive
-                            ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
-                        }
+                        ${isActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}
                       `}
                     >
                       <Icon
                         size={20}
-                        className={`flex-shrink-0 transition-all duration-200 ${
-                          isActive
-                            ? "text-blue-600"
-                            : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"
-                        }`}
+                        className={`flex-shrink-0 transition-all duration-200 ${isActive ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"}`}
                       />
                       {showText && (
                         <span className="text-sm font-medium whitespace-nowrap">
@@ -274,20 +313,83 @@ export default function Sidebar() {
                       {isActive && showText && (
                         <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full" />
                       )}
-                      {isCollapsed && !isHovered && (
-                        <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">
-                            {item.description}
-                          </p>
-                        </div>
-                      )}
                     </Link>
                   );
                 })}
 
-                {/* ── Products Dropdown ── */}
-                <div ref={dropdownRef}>
+                {/* ── Users Dropdown ── */}
+                <div>
+                  <button
+                    onClick={() => {
+                      if (!isCollapsed || isHovered) setUsersOpen((v) => !v);
+                    }}
+                    className={`
+                      group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
+                      transition-all duration-200
+                      ${isCollapsed ? "justify-center" : ""}
+                      ${usersActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}
+                    `}
+                  >
+                    <Users
+                      size={20}
+                      className={`flex-shrink-0 transition-all duration-200 ${usersActive ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"}`}
+                    />
+                    {showText && (
+                      <>
+                        <span className="text-sm font-medium whitespace-nowrap flex-1 text-left">
+                          Customers
+                        </span>
+                        <span
+                          className={`transition-transform duration-300 ${usersOpen ? "rotate-90" : "rotate-0"}`}
+                        >
+                          <ChevronRight
+                            size={14}
+                            className={
+                              usersActive ? "text-blue-500" : "text-gray-400"
+                            }
+                          />
+                        </span>
+                      </>
+                    )}
+                    {usersActive && showText && (
+                      <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full" />
+                    )}
+                  </button>
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${usersOpen && showText ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}
+                  >
+                    <div className="mt-0.5 mb-1 space-y-0.5">
+                      {userSubItems.map((sub) => {
+                        const isActive = pathname === sub.href;
+                        const Icon = sub.icon;
+                        return (
+                          <Link
+                            key={sub.href}
+                            href={sub.href}
+                            className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                          >
+                            <span
+                              className={`flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md transition-all duration-200 ${isActive ? "bg-blue-100" : `${sub.bg} group-hover:scale-110`}`}
+                            >
+                              <Icon
+                                size={12}
+                                className={
+                                  isActive ? "text-blue-600" : sub.color
+                                }
+                              />
+                            </span>
+                            <span className="text-sm font-medium whitespace-nowrap">
+                              {sub.name}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Inventory Dropdown ── */}
+                <div>
                   <button
                     onClick={() => {
                       if (!isCollapsed || isHovered) setProductsOpen((v) => !v);
@@ -296,31 +398,20 @@ export default function Sidebar() {
                       group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
                       transition-all duration-200
                       ${isCollapsed ? "justify-center" : ""}
-                      ${
-                        productsActive
-                          ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
-                      }
+                      ${productsActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}
                     `}
                   >
                     <Package
                       size={20}
-                      className={`flex-shrink-0 transition-all duration-200 ${
-                        productsActive
-                          ? "text-blue-600"
-                          : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"
-                      }`}
+                      className={`flex-shrink-0 transition-all duration-200 ${productsActive ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"}`}
                     />
                     {showText && (
                       <>
                         <span className="text-sm font-medium whitespace-nowrap flex-1 text-left">
                           Inventory
                         </span>
-                        {/* Chevron */}
                         <span
-                          className={`transition-transform duration-300 ${
-                            productsOpen ? "rotate-90" : "rotate-0"
-                          }`}
+                          className={`transition-transform duration-300 ${productsOpen ? "rotate-90" : "rotate-0"}`}
                         >
                           <ChevronRight
                             size={14}
@@ -334,24 +425,9 @@ export default function Sidebar() {
                     {productsActive && showText && (
                       <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full" />
                     )}
-                    {/* Tooltip collapsed */}
-                    {isCollapsed && !isHovered && (
-                      <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
-                        <p className="font-medium">Products</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">
-                          Inventory management
-                        </p>
-                      </div>
-                    )}
                   </button>
-
-                  {/* Dropdown Panel */}
                   <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                      productsOpen && showText
-                        ? "max-h-80 opacity-100"
-                        : "max-h-0 opacity-0"
-                    }`}
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${productsOpen && showText ? "max-h-80 opacity-100" : "max-h-0 opacity-0"}`}
                   >
                     <div className="mt-0.5 mb-1 space-y-0.5">
                       {productSubItems.map((sub) => {
@@ -361,23 +437,10 @@ export default function Sidebar() {
                           <Link
                             key={sub.href}
                             href={sub.href}
-                            className={`
-                              group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
-                              transition-all duration-200
-                              ${
-                                isActive
-                                  ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
-                                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                              }
-                            `}
+                            className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
                           >
-                            {/* Colored icon pill */}
                             <span
-                              className={`flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md transition-all duration-200 ${
-                                isActive
-                                  ? "bg-blue-100"
-                                  : `${sub.bg} group-hover:scale-110`
-                              }`}
+                              className={`flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md transition-all duration-200 ${isActive ? "bg-blue-100" : `${sub.bg} group-hover:scale-110`}`}
                             >
                               <Icon
                                 size={12}
@@ -389,9 +452,6 @@ export default function Sidebar() {
                             <span className="text-sm font-medium whitespace-nowrap">
                               {sub.name}
                             </span>
-                            {isActive && (
-                              <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full" />
-                            )}
                           </Link>
                         );
                       })}
@@ -399,8 +459,79 @@ export default function Sidebar() {
                   </div>
                 </div>
 
-                {/* Orders & Reports */}
-                {menuItems.slice(2).map((item) => {
+                {/* ── Orders Dropdown ── */}
+                <div>
+                  <button
+                    onClick={() => {
+                      if (!isCollapsed || isHovered) setOrdersOpen((v) => !v);
+                    }}
+                    className={`
+                      group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
+                      transition-all duration-200
+                      ${isCollapsed ? "justify-center" : ""}
+                      ${ordersActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}
+                    `}
+                  >
+                    <ShoppingBag
+                      size={20}
+                      className={`flex-shrink-0 transition-all duration-200 ${ordersActive ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"}`}
+                    />
+                    {showText && (
+                      <>
+                        <span className="text-sm font-medium whitespace-nowrap flex-1 text-left">
+                          Orders
+                        </span>
+                        <span
+                          className={`transition-transform duration-300 ${ordersOpen ? "rotate-90" : "rotate-0"}`}
+                        >
+                          <ChevronRight
+                            size={14}
+                            className={
+                              ordersActive ? "text-blue-500" : "text-gray-400"
+                            }
+                          />
+                        </span>
+                      </>
+                    )}
+                    {ordersActive && showText && (
+                      <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full" />
+                    )}
+                  </button>
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${ordersOpen && showText ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}
+                  >
+                    <div className="mt-0.5 mb-1 space-y-0.5">
+                      {orderSubItems.map((sub) => {
+                        const isActive = pathname === sub.href;
+                        const Icon = sub.icon;
+                        return (
+                          <Link
+                            key={sub.href}
+                            href={sub.href}
+                            className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                          >
+                            <span
+                              className={`flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-md transition-all duration-200 ${isActive ? "bg-blue-100" : `${sub.bg} group-hover:scale-110`}`}
+                            >
+                              <Icon
+                                size={12}
+                                className={
+                                  isActive ? "text-blue-600" : sub.color
+                                }
+                              />
+                            </span>
+                            <span className="text-sm font-medium whitespace-nowrap">
+                              {sub.name}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reports */}
+                {menuItems.slice(1).map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;
                   return (
@@ -411,20 +542,12 @@ export default function Sidebar() {
                         group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
                         transition-all duration-200
                         ${isCollapsed ? "justify-center" : ""}
-                        ${
-                          isActive
-                            ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
-                        }
+                        ${isActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}
                       `}
                     >
                       <Icon
                         size={20}
-                        className={`flex-shrink-0 transition-all duration-200 ${
-                          isActive
-                            ? "text-blue-600"
-                            : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"
-                        }`}
+                        className={`flex-shrink-0 transition-all duration-200 ${isActive ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"}`}
                       />
                       {showText && (
                         <span className="text-sm font-medium whitespace-nowrap">
@@ -434,21 +557,13 @@ export default function Sidebar() {
                       {isActive && showText && (
                         <div className="absolute left-0 w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-r-full" />
                       )}
-                      {isCollapsed && !isHovered && (
-                        <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-[10px] text-gray-400 mt-0.5">
-                            {item.description}
-                          </p>
-                        </div>
-                      )}
                     </Link>
                   );
                 })}
               </div>
             </div>
 
-            {/* Notifications Section */}
+            {/* Updates Section */}
             <div>
               {showText && (
                 <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 px-2">
@@ -458,25 +573,12 @@ export default function Sidebar() {
               <div className="space-y-1">
                 <Link
                   href="/dashboard/notifications"
-                  className={`
-                    group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
-                    transition-all duration-200
-                    ${isCollapsed ? "justify-center" : ""}
-                    ${
-                      pathname === "/dashboard/notifications"
-                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
-                    }
-                  `}
+                  className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isCollapsed ? "justify-center" : ""} ${pathname === "/dashboard/notifications" ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}`}
                 >
                   <div className="relative flex-shrink-0">
                     <Bell
                       size={20}
-                      className={`transition-all duration-200 ${
-                        pathname === "/dashboard/notifications"
-                          ? "text-blue-600"
-                          : "text-gray-500 group-hover:text-blue-600"
-                      }`}
+                      className={`transition-all duration-200 ${pathname === "/dashboard/notifications" ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600"}`}
                     />
                     {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold w-4 h-4 flex items-center justify-center rounded-full ring-2 ring-white">
@@ -496,14 +598,6 @@ export default function Sidebar() {
                       )}
                     </>
                   )}
-                  {isCollapsed && !isHovered && unreadCount > 0 && (
-                    <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
-                      <p className="font-medium">Notifications</p>
-                      <p className="text-[10px] text-red-400 mt-0.5">
-                        {unreadCount} unread
-                      </p>
-                    </div>
-                  )}
                 </Link>
               </div>
             </div>
@@ -520,51 +614,23 @@ export default function Sidebar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`
-                    group relative flex items-center gap-3 px-3 py-2.5 rounded-xl
-                    transition-all duration-200
-                    ${isCollapsed ? "justify-center" : ""}
-                    ${
-                      isActive
-                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"
-                    }
-                  `}
+                  className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${isCollapsed ? "justify-center" : ""} ${isActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}`}
                 >
                   <Icon
                     size={20}
-                    className={`flex-shrink-0 transition-all duration-200 ${
-                      isActive
-                        ? "text-blue-600"
-                        : "text-gray-500 group-hover:text-blue-600"
-                    }`}
+                    className={`flex-shrink-0 transition-all duration-200 ${isActive ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600"}`}
                   />
                   {showText && (
                     <span className="text-sm font-medium whitespace-nowrap">
                       {item.name}
                     </span>
                   )}
-                  {isCollapsed && !isHovered && (
-                    <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        {item.description}
-                      </p>
-                    </div>
-                  )}
                 </Link>
               );
             })}
-
-            {/* Logout */}
             <button
               onClick={handleLogout}
-              className={`
-                w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
-                text-red-600 hover:bg-red-50 hover:text-red-700
-                transition-all duration-200 group
-                ${isCollapsed ? "justify-center" : ""}
-              `}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 transition-all duration-200 group ${isCollapsed ? "justify-center" : ""}`}
             >
               <LogOut
                 size={20}
@@ -574,12 +640,6 @@ export default function Sidebar() {
                 <span className="text-sm font-medium whitespace-nowrap">
                   Logout
                 </span>
-              )}
-              {isCollapsed && !isHovered && (
-                <div className="absolute left-full ml-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 whitespace-nowrap shadow-lg">
-                  <p className="font-medium">Logout</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">Sign out</p>
-                </div>
               )}
             </button>
           </div>

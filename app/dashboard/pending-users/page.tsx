@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchUsers, deleteUser } from "@/store/slices/userSlice";
+import { fetchUsers, approveUser, deleteUser } from "@/store/slices/userSlice";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import {
@@ -11,6 +11,7 @@ import {
   Phone,
   RefreshCw,
   Calendar,
+  Clock,
   Search,
   Users as UsersIcon,
   UserCheck,
@@ -20,9 +21,10 @@ import {
   Shield,
 } from "lucide-react";
 
-export default function UsersPage() {
+export default function PendingUsersPage() {
   const dispatch = useAppDispatch();
   const { users, loading } = useAppSelector((state) => state.users);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [userToDelete, setUserToDelete] = useState<any>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -31,6 +33,12 @@ export default function UsersPage() {
   useEffect(() => {
     dispatch(fetchUsers());
   }, [dispatch]);
+
+  const handleApprove = async (userId: string) => {
+    setApprovingId(userId);
+    await dispatch(approveUser(userId));
+    setApprovingId(null);
+  };
 
   const handleDeleteClick = (user: any) => {
     setUserToDelete(user);
@@ -51,17 +59,20 @@ export default function UsersPage() {
     }
   };
 
-  const activeUsers = users.filter((user) => {
-    const isActive = user.isApproved && user.role === "customer";
+  const filteredUsers = users.filter((user) => {
+    const isPending = !user.isApproved && user.role !== "admin";
+    if (!isPending) return false;
+
     const matchesSearch =
       user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.phone_number.includes(searchTerm);
-    return isActive && matchesSearch;
+
+    return matchesSearch;
   });
 
-  const totalActive = users.filter(
-    (u) => u.isApproved && u.role === "customer",
+  const totalPending = users.filter(
+    (u) => !u.isApproved && u.role !== "admin",
   ).length;
 
   if (loading && users.length === 0) {
@@ -69,7 +80,7 @@ export default function UsersPage() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-500 font-medium">Loading users...</p>
+          <p className="text-gray-500 font-medium">Loading pending users...</p>
         </div>
       </div>
     );
@@ -86,7 +97,7 @@ export default function UsersPage() {
           />
           <input
             type="text"
-            placeholder="Search active users by name, email, or phone..."
+            placeholder="Search pending users by name, email, or phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm"
@@ -101,34 +112,30 @@ export default function UsersPage() {
         </button>
       </div>
 
-      {/* Active Users Table */}
+      {/* Pending Approvals Table */}
       <div className="rounded-2xl bg-white border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-orange-50">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-emerald-100 rounded-lg">
-              <UserCheck size={16} className="text-emerald-600" />
+            <div className="p-1.5 bg-amber-100 rounded-lg">
+              <Clock size={16} className="text-amber-600" />
             </div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Active Customers
+              Pending Approvals
             </h2>
-            <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full ml-2">
-              {activeUsers.length}
+            <span className="px-2.5 py-0.5 bg-amber-200 text-amber-800 text-xs font-medium rounded-full ml-2">
+              {filteredUsers.length}
             </span>
           </div>
         </div>
 
-        {activeUsers.length === 0 ? (
+        {filteredUsers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <UsersIcon size={32} className="text-gray-400" />
+              <Clock size={32} className="text-gray-400" />
             </div>
-            <p className="text-gray-500 font-medium">
-              No active customers found
-            </p>
+            <p className="text-gray-500 font-medium">No pending approvals</p>
             <p className="text-sm text-gray-400 mt-1">
-              {searchTerm
-                ? "Try adjusting your search"
-                : "Approved users will appear here"}
+              All user requests have been processed
             </p>
           </div>
         ) : (
@@ -146,9 +153,6 @@ export default function UsersPage() {
                     Phone
                   </th>
                   <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Joined
-                  </th>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                     Status
                   </th>
                   <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -157,28 +161,21 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {activeUsers.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                    className="border-b border-gray-50 hover:bg-amber-50/20 transition-colors"
                   >
                     <td className="py-3 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center shadow-sm">
+                        <div className="w-9 h-9 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-sm">
                           <span className="text-white font-semibold text-sm">
                             {user.name?.charAt(0) || "U"}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
-                            {user.name || "N/A"}
-                          </p>
-                          {user.pharmacy_name && (
-                            <p className="text-xs text-gray-500">
-                              {user.pharmacy_name}
-                            </p>
-                          )}
-                        </div>
+                        <span className="font-medium text-gray-900">
+                          {user.name || "Unnamed User"}
+                        </span>
                       </div>
                     </td>
                     <td className="py-3 px-6">
@@ -194,29 +191,28 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="py-3 px-6">
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Calendar size={14} className="text-gray-400" />
-                        <span>
-                          {user.createdAt
-                            ? new Date(user.createdAt).toLocaleDateString()
-                            : "N/A"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-6">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
-                        <CheckCircle size={10} />
-                        Active
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">
+                        <Clock size={10} />
+                        Pending
                       </span>
                     </td>
                     <td className="py-3 px-6">
-                      <button
-                        onClick={() => handleDeleteClick(user)}
-                        className="p-2 text-red-600 bg-red-100 hover:bg-red-200 rounded-lg transition-all duration-200"
-                        title="Delete User"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handleApprove(user.id)}
+                          loading={approvingId === user.id}
+                          className="p-2 bg-emerald-100 hover:bg-emerald-200 rounded-lg transition-all duration-200 text-emerald-600"
+                        >
+                          <CheckCircle size={16} className="text-emerald-600" />
+                        </Button>
+                        <button
+                          onClick={() => handleDeleteClick(user)}
+                          className="p-2 text-red-600 bg-red-100 hover:bg-red-200 rounded-lg transition-all duration-200"
+                          title="Delete User"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
