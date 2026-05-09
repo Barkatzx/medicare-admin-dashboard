@@ -3,14 +3,33 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/index";
-import { fetchTrendingProducts, updateTrendingStatus } from "@/store/slices/trendingSlice";
+import {
+  fetchTrendingProducts,
+  updateTrendingStatus,
+} from "@/store/slices/trendingSlice";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { Star, TrendingUp, Loader2, Package, AlertCircle } from "lucide-react";
+import {
+  Star,
+  Award,
+  Loader2,
+  Package,
+  AlertCircle,
+  TrendingUp,
+  Shield,
+  Sparkles,
+  Zap,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Heart,
+} from "lucide-react";
 
 export default function TrendingProductsPage() {
   const dispatch = useDispatch();
-  const { trendingProducts, loading, error } = useSelector((state: RootState) => state.trending);
+  const { trendingProducts, loading, error } = useSelector(
+    (state: RootState) => state.trending,
+  );
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,7 +39,9 @@ export default function TrendingProductsPage() {
   const handleRemoveTrending = async (productId: string) => {
     setUpdatingId(productId);
     try {
-      await dispatch(updateTrendingStatus({ productId, trending: false }) as any);
+      await dispatch(
+        updateTrendingStatus({ productId, trending: false }) as any,
+      );
       toast.success("Product removed from trending");
     } catch (err) {
       console.error("Remove trending error:", err);
@@ -32,14 +53,18 @@ export default function TrendingProductsPage() {
 
   if (error && !loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Trending Products</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-2xl shadow-xl">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-10 h-10 text-red-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            Error Loading Trending Products
+          </h2>
+          <p className="text-gray-600 mb-6">{error}</p>
           <button
             onClick={() => dispatch(fetchTrendingProducts() as any)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
           >
             Try Again
           </button>
@@ -49,108 +74,277 @@ export default function TrendingProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <TrendingUp className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Trending Products</h1>
+    <div className="min-h-screen">
+      <div className="mx-auto">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Total Trending</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {trendingProducts.length}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Star className="w-5 h-5 text-yellow-600 fill-yellow-600" />
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-gray-600">
-            View products that appear on the homepage trending section. You can remove them here or manage them from the Products page.
-          </p>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-4 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Total Value</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ৳
+                  {trendingProducts
+                    .reduce((sum, p) => sum + (p.finalPrice || p.price), 0)
+                    .toLocaleString()}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-4 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Categories</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {new Set(trendingProducts.map((p) => p.categoryId)).size}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Shield className="w-5 h-5 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-100 p-4 transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Total Stock</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {trendingProducts
+                    .reduce((sum, p) => sum + p.stock, 0)
+                    .toLocaleString()}
+                </p>
+              </div>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Package className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Active Trending Products ({trendingProducts.length})
-            </h2>
-            {loading && <Loader2 className="w-5 h-5 animate-spin text-blue-600" />}
+        {/* Trending Products Table */}
+        <div className="rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 to-white">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Star className="w-4 h-4 text-yellow-600 fill-yellow-600" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Trending Collection
+              </h2>
+              {loading && (
+                <div className="flex items-center gap-2 text-sm text-yellow-600 ml-auto">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Syncing...</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="p-6">
+          <div className="overflow-x-auto">
             {loading && trendingProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
-                <p>Loading trending products...</p>
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="relative">
+                  <div className="w-16 h-16 border-4 border-yellow-100 rounded-full animate-pulse" />
+                  <Loader2 className="w-8 h-8 text-yellow-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin" />
+                </div>
+                <p className="text-gray-500 mt-4">
+                  Loading trending products...
+                </p>
               </div>
             ) : trendingProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <Star className="w-16 h-16 text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-1">No trending products yet</h3>
-                <p className="text-sm text-gray-500">
-                  Go to the Products page and click the Star icon to mark products as trending.
+              <div className="flex flex-col items-center justify-center py-20 bg-gray-50">
+                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Star className="w-10 h-10 text-gray-300" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                  No trending products yet
+                </h3>
+                <p className="text-gray-500 text-center max-w-md">
+                  Go to the Products page and click the Star icon to mark
+                  products as trending and showcase them here.
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {trendingProducts.map((product) => {
-                  const defaultImage = product.images?.find((img) => img.isDefault) || product.images?.[0];
-                  const isUpdating = updatingId === product.id;
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-100">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                      #
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                      PRODUCT
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                      CATEGORY
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                      PRICE
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600">
+                      STOCK
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Discount
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {trendingProducts.map((product, index) => {
+                    const defaultImage =
+                      product.images?.find((img) => img.isDefault) ||
+                      product.images?.[0];
+                    const isUpdating = updatingId === product.id;
 
-                  return (
-                    <div
-                      key={product.id}
-                      className="flex flex-col bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                      {/* Product Image */}
-                      <div className="w-full h-48 relative bg-gray-100">
-                        {defaultImage?.url ? (
-                          <Image
-                            src={defaultImage.url}
-                            alt={product.name || "Product"}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="w-10 h-10 text-gray-300" />
+                    return (
+                      <tr
+                        key={product.id}
+                        className="hover:bg-gray-50 transition-colors group"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <span className="text-xs font-bold text-yellow-600">
+                                #{index + 1}
+                              </span>
+                            </div>
                           </div>
-                        )}
-                        <div className="absolute top-3 right-3">
-                          <span className="flex items-center gap-1 px-2.5 py-1 bg-yellow-100 text-yellow-700 text-xs font-semibold rounded-full shadow-sm">
-                            <Star size={12} className="fill-current" />
-                            Trending
-                          </span>
-                        </div>
-                      </div>
+                        </td>
 
-                      {/* Info */}
-                      <div className="p-4 flex-1 flex flex-col">
-                        <h3 className="text-base font-semibold text-gray-900 line-clamp-1">{product.name}</h3>
-                        <p className="text-sm text-gray-500 mt-1">{product.category?.name || "Uncategorized"}</p>
-                        
-                        <div className="mt-4 flex items-end justify-between">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 relative bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                              {defaultImage?.url ? (
+                                <Image
+                                  src={defaultImage.url}
+                                  alt={product.name || "Product"}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-5 h-5 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                                {product.name}
+                              </p>
+                              {product.description && (
+                                <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
+                                  {product.description.substring(0, 60)}...
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-lg">
+                            {product.category?.name || "Uncategorized"}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
                           <div>
-                            <span className="text-lg font-bold text-gray-900">
-                              ৳{product.finalPrice?.toLocaleString() || product.price.toLocaleString()}
-                            </span>
+                            <p className="text-sm font-bold text-gray-900">
+                              ৳
+                              {(
+                                product.finalPrice || product.price
+                              ).toLocaleString()}
+                            </p>
                             {product.discountPercent > 0 && (
-                              <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-xs text-gray-400 line-through">৳{product.price.toLocaleString()}</span>
-                                <span className="text-xs text-emerald-600 font-medium">-{product.discountPercent}%</span>
-                              </div>
+                              <p className="text-xs text-gray-400 line-through">
+                                ৳{product.price.toLocaleString()}
+                              </p>
                             )}
                           </div>
-                          
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
+                              product.stock <= 20
+                                ? "bg-red-100 text-red-700"
+                                : "bg-emerald-100 text-emerald-700"
+                            }`}
+                          >
+                            {product.stock}
+                          </span>
+                        </td>
+
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {product.discountPercent > 0 ? (
+                            <div className="flex items-center gap-1">
+                              <span className="inline-flex px-2 py-1 text-xs font-bold bg-emerald-100 text-emerald-700 rounded-lg">
+                                -{product.discountPercent}%
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                Save ৳
+                                {(
+                                  product.price -
+                                  (product.finalPrice || product.price)
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              No discount
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-6 py-4 text-center">
                           <button
                             onClick={() => handleRemoveTrending(product.id)}
                             disabled={isUpdating}
-                            className="flex items-center justify-center p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="group/btn relative p-2 bg-red-50 hover:bg-red-100 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Remove from trending"
                           >
-                            {isUpdating ? <Loader2 size={18} className="animate-spin" /> : <Star size={18} className="fill-red-600 text-red-600" />}
+                            {isUpdating ? (
+                              <Loader2
+                                size={16}
+                                className="animate-spin text-red-600"
+                              />
+                            ) : (
+                              <>
+                                <Star
+                                  size={16}
+                                  className="text-yellow-600 fill-yellow-600"
+                                />
+                                <div className="absolute inset-0 bg-yellow-200 rounded-lg scale-0 transition-transform duration-200" />
+                              </>
+                            )}
                           </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             )}
           </div>
         </div>

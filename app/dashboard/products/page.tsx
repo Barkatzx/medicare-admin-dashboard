@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchProducts, deleteProduct } from "@/store/slices/productSlice";
+import { fetchProducts, deleteProduct, fetchInventoryStats } from "@/store/slices/productSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
 import Button from "@/components/ui/Button";
 import {
@@ -21,8 +21,14 @@ import {
   Star,
   Heart,
 } from "lucide-react";
-import { updateTrendingStatus, fetchTrendingProducts } from "@/store/slices/trendingSlice";
-import { updateFeaturedStatus, fetchFeaturedProducts } from "@/store/slices/featuredSlice";
+import {
+  updateTrendingStatus,
+  fetchTrendingProducts,
+} from "@/store/slices/trendingSlice";
+import {
+  updateFeaturedStatus,
+  fetchFeaturedProducts,
+} from "@/store/slices/featuredSlice";
 import Modal from "@/components/ui/Modal";
 import toast from "react-hot-toast";
 import ProductForm from "../../../components/products/ProductForm";
@@ -31,7 +37,7 @@ import { Product } from "@/config/api";
 
 export default function ProductsPage() {
   const dispatch = useAppDispatch();
-  const { products, loading, pagination } = useAppSelector(
+  const { products, loading, pagination, inventoryStats } = useAppSelector(
     (state) => state.products,
   );
   const { categories } = useAppSelector((state) => state.categories);
@@ -58,12 +64,14 @@ export default function ProductsPage() {
         categoryId: filterCategory !== "all" ? filterCategory : undefined,
       }),
     );
+    dispatch(fetchInventoryStats() as any);
   }, [dispatch, currentPage, searchTerm, filterCategory]);
 
   useEffect(() => {
     dispatch(fetchCategories());
     dispatch(fetchTrendingProducts() as any);
     dispatch(fetchFeaturedProducts() as any);
+    dispatch(fetchInventoryStats() as any);
   }, [dispatch]);
 
   useEffect(() => {
@@ -113,11 +121,11 @@ export default function ProductsPage() {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
 
-  const lowStockCount = products.filter(
+  const lowStockCount = inventoryStats?.lowStockCount ?? products.filter(
     (p) => p.stock <= 20 && p.stock > 0,
   ).length;
-  const outOfStockCount = products.filter((p) => p.stock === 0).length;
-  const totalValue = products.reduce(
+  const outOfStockCount = inventoryStats?.outOfStockCount ?? products.filter((p) => p.stock === 0).length;
+  const totalValue = inventoryStats?.totalValue ?? products.reduce(
     (sum, p) => sum + (p.discountedPrice ?? p.price) * p.stock,
     0,
   );
@@ -145,12 +153,12 @@ export default function ProductsPage() {
       icon: AlertTriangle,
       color: "from-red-500 to-rose-600",
     },
-    {
-      label: "Inventory Value",
-      value: `৳${totalValue.toLocaleString()}`,
-      icon: DollarSign,
-      color: "from-emerald-500 to-teal-600",
-    },
+    // {
+    //   label: "Inventory Value",
+    //   value: `৳${totalValue.toLocaleString()}`,
+    //   icon: DollarSign,
+    //   color: "from-emerald-500 to-teal-600",
+    // },
     {
       label: "Trending",
       value: trendingProducts.length,
@@ -179,7 +187,7 @@ export default function ProductsPage() {
   return (
     <div className="space-y-8">
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
         {stats.map(({ label, value, icon: Icon, color }) => (
           <div
             key={label}
@@ -443,7 +451,12 @@ export default function ProductsPage() {
                             <button
                               onClick={async () => {
                                 try {
-                                  await dispatch(updateFeaturedStatus({ productId: product.id, featured: !product.featured }) as any);
+                                  await dispatch(
+                                    updateFeaturedStatus({
+                                      productId: product.id,
+                                      featured: !product.featured,
+                                    }) as any,
+                                  );
                                   loadProducts();
                                 } catch (error) {
                                   console.error(error);
@@ -454,14 +467,28 @@ export default function ProductsPage() {
                                   ? "text-pink-600 bg-pink-100 hover:bg-pink-200"
                                   : "text-gray-400 bg-gray-100 hover:bg-gray-200"
                               }`}
-                              title={product.featured ? "Remove from Featured" : "Add to Featured"}
+                              title={
+                                product.featured
+                                  ? "Remove from Featured"
+                                  : "Add to Featured"
+                              }
                             >
-                              <Heart size={16} className={product.featured ? "fill-current" : ""} />
+                              <Heart
+                                size={16}
+                                className={
+                                  product.featured ? "fill-current" : ""
+                                }
+                              />
                             </button>
                             <button
                               onClick={async () => {
                                 try {
-                                  await dispatch(updateTrendingStatus({ productId: product.id, trending: !product.trending }) as any);
+                                  await dispatch(
+                                    updateTrendingStatus({
+                                      productId: product.id,
+                                      trending: !product.trending,
+                                    }) as any,
+                                  );
                                   loadProducts();
                                 } catch (error) {
                                   console.error(error);
@@ -472,9 +499,18 @@ export default function ProductsPage() {
                                   ? "text-yellow-600 bg-yellow-100 hover:bg-yellow-200"
                                   : "text-gray-400 bg-gray-100 hover:bg-gray-200"
                               }`}
-                              title={product.trending ? "Remove from Trending" : "Add to Trending"}
+                              title={
+                                product.trending
+                                  ? "Remove from Trending"
+                                  : "Add to Trending"
+                              }
                             >
-                              <Star size={16} className={product.trending ? "fill-current" : ""} />
+                              <Star
+                                size={16}
+                                className={
+                                  product.trending ? "fill-current" : ""
+                                }
+                              />
                             </button>
                             <button
                               onClick={() => {

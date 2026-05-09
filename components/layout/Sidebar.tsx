@@ -22,6 +22,8 @@ import {
   Leaf,
   AreaChart,
   ShoppingBag,
+  Heart,
+  TrendingUp,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -45,6 +47,18 @@ const menuItems = [
     href: "/dashboard/products",
     icon: Package,
     description: "Inventory management",
+  },
+  {
+    name: "Featured",
+    href: "/dashboard/featured",
+    icon: Heart,
+    description: "Manage featured items",
+  },
+  {
+    name: "Trending",
+    href: "/dashboard/trending",
+    icon: TrendingUp,
+    description: "Manage trending items",
   },
   {
     name: "Categories",
@@ -188,37 +202,9 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* User Profile Section */}
-        {/* <div
-          className={`mx-3 mt-4 p-2.5 rounded-xl bg-gradient-to-br from-gray-50 to-white border border-gray-100 ${isCollapsed ? "flex justify-center" : ""}`}
-        >
-          <div
-            className={`flex items-center gap-3 ${isCollapsed ? "justify-center" : ""}`}
-          >
-            <div className="relative flex-shrink-0">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md">
-                <span className="text-white font-semibold text-sm">
-                  {user?.name?.charAt(0) || "A"}
-                </span>
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-            </div>
-            {showText && (
-              <div className="flex-1 min-w-0 transition-opacity duration-200">
-                <p className="text-sm font-semibold text-gray-800 truncate">
-                  {user?.name || "Admin User"}
-                </p>
-                <p className="text-[10px] text-gray-500 truncate uppercase tracking-wider">
-                  {user?.role || "Administrator"}
-                </p>
-              </div>
-            )}
-          </div>
-        </div> */}
-
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 overflow-y-auto custom-scrollbar">
-          <div className="space-y-6">
+        <nav className="flex-1 px-3 py-2 overflow-y-auto">
+          <div className="space-y-4">
             {/* Main Menu */}
             <div>
               {showText && (
@@ -226,7 +212,7 @@ export default function Sidebar() {
                   Main Menu
                 </p>
               )}
-              <div className="space-y-1">
+              <div>
                 {menuItems.map((item) => {
                   const isActive = pathname === item.href;
                   const Icon = item.icon;

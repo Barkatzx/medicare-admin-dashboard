@@ -17,6 +17,11 @@ interface ProductState {
     total: number;
     pages: number;
   };
+  inventoryStats: {
+    lowStockCount: number;
+    outOfStockCount: number;
+    totalValue: number;
+  } | null;
 }
 
 const initialState: ProductState = {
@@ -31,6 +36,7 @@ const initialState: ProductState = {
     total: 0,
     pages: 0,
   },
+  inventoryStats: null,
 };
 
 // export const fetchProducts = createAsyncThunk(
@@ -170,6 +176,25 @@ export const fetchTopProducts = createAsyncThunk(
     const response = await api.getTopProducts(limit);
     return response;
   },
+);
+
+export const fetchInventoryStats = createAsyncThunk(
+  "products/fetchInventoryStats",
+  async (_, { rejectWithValue }) => {
+    try {
+      // Fetch with a large limit to calculate global stats
+      const response = await api.getAllProducts(1, 1000); 
+      const allProducts = response.products;
+      
+      const lowStockCount = allProducts.filter(p => p.stock <= 20 && p.stock > 0).length;
+      const outOfStockCount = allProducts.filter(p => p.stock === 0).length;
+      const totalValue = allProducts.reduce((sum, p) => sum + (p.discountedPrice ?? p.price) * p.stock, 0);
+      
+      return { lowStockCount, outOfStockCount, totalValue };
+    } catch (error: any) {
+      return rejectWithValue(error.message || "Failed to fetch inventory stats");
+    }
+  }
 );
 
 const productSlice = createSlice({
@@ -370,6 +395,10 @@ const productSlice = createSlice({
         state.topProductsLoading = false;
         state.error = action.error.message || "Failed to fetch top products";
         toast.error("Failed to load top products");
+      })
+      // Fetch Inventory Stats
+      .addCase(fetchInventoryStats.fulfilled, (state, action) => {
+        state.inventoryStats = action.payload;
       });
   },
 });
