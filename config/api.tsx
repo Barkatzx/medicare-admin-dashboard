@@ -1,6 +1,6 @@
 // services/api.ts - Full updated file
 
-const API_BASE_URL = "https://api.barkatulla.com/api";
+const API_BASE_URL = "https://api.barkatulla.com/v1";
 
 export interface User {
   id: string;
