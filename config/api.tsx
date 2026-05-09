@@ -22,6 +22,8 @@ export interface Product {
   discountPercent: number;
   stock: number;
   categoryId: string;
+  featured?: boolean;
+  trending?: boolean;
   createdAt: string;
   updatedAt?: string;
   images?: ProductImage[];
@@ -667,6 +669,39 @@ class API {
       return result;
     }
     return [];
+  }
+
+  // ==================== TRENDING PRODUCTS MANAGEMENT ====================
+
+  async getTrendingProducts(): Promise<Product[]> {
+    try {
+      // Use this.request to automatically handle response format parsing
+      const response = await this.request('/products/trending');
+      
+      // If the response is already the array of products (handled by this.request logic)
+      if (Array.isArray(response)) {
+        return response;
+      }
+      
+      // If it returned the raw data for some reason
+      if (response && response.products && Array.isArray(response.products)) {
+        return response.products;
+      }
+
+      console.warn("Unexpected response structure from trending products:", response);
+      return [];
+    } catch (error) {
+      console.error("Error in getTrendingProducts:", error);
+      throw error;
+    }
+  }
+
+  async updateProductTrendingStatus(productId: string, trending: boolean): Promise<Product> {
+    // Only send the 'trending' boolean since 'trendingOrder' is no longer required
+    return this.request(`/products/${productId}/trending`, {
+      method: "PATCH",
+      body: JSON.stringify({ trending }),
+    });
   }
 
   // ==================== PRODUCT IMAGE MANAGEMENT ====================

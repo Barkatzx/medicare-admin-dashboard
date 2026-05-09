@@ -8,6 +8,7 @@ import orderReducer from "./slices/orderSlice";
 import salesReducer from "./slices/salesSlice";
 import dashboardReducer from "./slices/dashboardSlice";
 import notificationReducer from "./slices/notificationSlice";
+import trendingReducer from "./slices/trendingSlice";
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +20,7 @@ export const store = configureStore({
     sales: salesReducer,
     dashboard: dashboardReducer,
     notifications: notificationReducer,
+    trending: trendingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

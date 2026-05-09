@@ -18,7 +18,9 @@ import {
   ChevronRight,
   X,
   Pencil,
+  Star,
 } from "lucide-react";
+import { updateTrendingStatus, fetchTrendingProducts } from "@/store/slices/trendingSlice";
 import Modal from "@/components/ui/Modal";
 import toast from "react-hot-toast";
 import ProductForm from "../../../components/products/ProductForm";
@@ -31,6 +33,7 @@ export default function ProductsPage() {
     (state) => state.products,
   );
   const { categories } = useAppSelector((state) => state.categories);
+  const { trendingProducts } = useAppSelector((state) => state.trending);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -56,6 +59,7 @@ export default function ProductsPage() {
 
   useEffect(() => {
     dispatch(fetchCategories());
+    dispatch(fetchTrendingProducts() as any);
   }, [dispatch]);
 
   useEffect(() => {
@@ -143,6 +147,12 @@ export default function ProductsPage() {
       icon: DollarSign,
       color: "from-emerald-500 to-teal-600",
     },
+    {
+      label: "Trending",
+      value: trendingProducts.length,
+      icon: Star,
+      color: "from-yellow-400 to-yellow-600",
+    },
   ];
 
   if (loading && products.length === 0 && currentPage === 1) {
@@ -159,7 +169,7 @@ export default function ProductsPage() {
   return (
     <div className="space-y-8">
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {stats.map(({ label, value, icon: Icon, color }) => (
           <div
             key={label}
@@ -420,6 +430,24 @@ export default function ProductsPage() {
 
                         <td className="py-3 px-6">
                           <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await dispatch(updateTrendingStatus({ productId: product.id, trending: !product.trending }) as any);
+                                  loadProducts();
+                                } catch (error) {
+                                  console.error(error);
+                                }
+                              }}
+                              className={`p-2 rounded-lg transition-colors ${
+                                product.trending
+                                  ? "text-yellow-600 bg-yellow-100 hover:bg-yellow-200"
+                                  : "text-gray-400 bg-gray-100 hover:bg-gray-200"
+                              }`}
+                              title={product.trending ? "Remove from Trending" : "Add to Trending"}
+                            >
+                              <Star size={16} className={product.trending ? "fill-current" : ""} />
+                            </button>
                             <button
                               onClick={() => {
                                 setSelectedProduct(product);
