@@ -5,47 +5,38 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchOrders,
   updateOrderStatus,
-  confirmPayment,
 } from "@/store/slices/orderSlice";
 import {
   Package,
-  Truck,
-  CheckCircle,
   XCircle,
   Search,
   ChevronLeft,
   ChevronRight,
   Calendar,
-  DollarSign,
-  ShoppingBag,
-  CreditCard,
-  Clock,
-  TrendingUp,
+  AlertTriangle,
+  History,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import InvoicePDF from "../../../components/orders/InvoicePDF";
 import InvoiceView from "../../../components/orders/InvoiceView";
 import { api, DashboardData } from "@/config/api";
 
-export default function PendingOrdersPage() {
+export default function CancelOrdersPage() {
   const dispatch = useAppDispatch();
   const { orders, pagination, loading } = useAppSelector(
     (state) => state.orders,
   );
-  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-  const [confirmingPayment, setConfirmingPayment] = useState<string | null>(
-    null,
-  );
   const [dashboardStats, setDashboardStats] = useState<DashboardData | null>(null);
 
   useEffect(() => {
+    // Only fetch cancelled orders
     dispatch(
-      fetchOrders({ page: currentPage, limit: 10, status: statusFilter }),
+      fetchOrders({ page: currentPage, limit: 10, status: "cancelled" }),
     );
-  }, [dispatch, currentPage, statusFilter]);
+  }, [dispatch, currentPage]);
 
   useEffect(() => {
     fetchStats();
@@ -67,7 +58,7 @@ export default function PendingOrdersPage() {
         updateOrderStatus({ orderId, status: newStatus }),
       ).unwrap();
       toast.success(`Order status updated to ${newStatus}`);
-      fetchStats(); // Refresh stats after update
+      fetchStats();
     } catch {
       toast.error("Failed to update order status");
     } finally {
@@ -75,60 +66,22 @@ export default function PendingOrdersPage() {
     }
   };
 
-  const handleConfirmPayment = async (orderId: string) => {
-    setConfirmingPayment(orderId);
-    try {
-      await dispatch(confirmPayment(orderId)).unwrap();
-      toast.success("Payment confirmed successfully");
-      fetchStats();
-    } catch {
-      toast.error("Failed to confirm payment");
-    } finally {
-      setConfirmingPayment(null);
-    }
-  };
-
   const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return <Package size={16} className="text-yellow-600" />;
-      case "confirmed":
-        return <CheckCircle size={16} className="text-blue-600" />;
-      case "processing":
-        return <Truck size={16} className="text-purple-600" />;
-      case "shipped":
-        return <Truck size={16} className="text-indigo-600" />;
-      case "delivered":
-        return <CheckCircle size={16} className="text-green-600" />;
-      case "cancelled":
-        return <XCircle size={16} className="text-red-600" />;
-      default:
-        return null;
+    if (status.toLowerCase() === "cancelled") {
+      return <XCircle size={16} className="text-red-600" />;
     }
+    return <Package size={16} className="text-gray-600" />;
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-700";
-      case "confirmed":
-        return "bg-blue-100 text-blue-700";
-      case "processing":
-        return "bg-purple-100 text-purple-700";
-      case "shipped":
-        return "bg-indigo-100 text-indigo-700";
-      case "delivered":
-        return "bg-green-100 text-green-700";
-      case "cancelled":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-100 text-gray-700";
+    if (status.toLowerCase() === "cancelled") {
+      return "bg-red-100 text-red-700";
     }
+    return "bg-gray-100 text-gray-700";
   };
 
   const filteredOrders = orders.filter((order) => {
-    const status = order.status.toLowerCase();
-    if (status === "delivered" || status === "cancelled") return false;
+    if (order.status.toLowerCase() !== "cancelled") return false;
     
     if (!searchTerm) return true;
     const search = searchTerm.toLowerCase();
@@ -143,80 +96,66 @@ export default function PendingOrdersPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">Loading pending orders...</p>
+          <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-500">Loading cancelled orders...</p>
         </div>
       </div>
     );
   }
 
+  const totalCancelledValue = filteredOrders.reduce((sum, order) => sum + parseFloat(order.totalAmount), 0);
+
   return (
     <div className="space-y-6">
-      {/* Stats Cards - Showing Today's Analytics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="rounded-xl p-4 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 font-medium">Today's Orders</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {dashboardStats?.today.orders ?? 0}
+              <p className="text-sm text-gray-500 font-medium">Cancelled Orders</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">
+                {pagination?.total ?? 0}
               </p>
-              <div className="flex items-center gap-1 mt-1">
-                <TrendingUp size={12} className={dashboardStats?.growth.daily && dashboardStats.growth.daily > 0 ? "text-green-500" : "text-gray-400"} />
-                <p className="text-[10px] text-gray-400">Daily growth: {dashboardStats?.growth.daily.toFixed(1) ?? 0}%</p>
-              </div>
+              <p className="text-[10px] text-gray-400 mt-1">Total cancellations</p>
+            </div>
+            <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+              <XCircle size={20} className="text-red-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl p-4 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Lost Revenue Est.</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                ৳{totalCancelledValue.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-1">From current view</p>
+            </div>
+            <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center">
+              <AlertTriangle size={20} className="text-amber-500" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl p-4 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 font-medium">Cancellation Rate</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {dashboardStats?.lifetime.orders ? ((pagination?.total ?? 0) / dashboardStats.lifetime.orders * 100).toFixed(1) : 0}%
+              </p>
+              <p className="text-[10px] text-gray-400 mt-1">Vs lifetime total</p>
             </div>
             <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
-              <ShoppingBag size={20} className="text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl p-4 border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Today's Revenue</p>
-              <p className="text-2xl font-bold text-emerald-600 mt-1">
-                ৳{(dashboardStats?.today.sales ?? 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center">
-              <DollarSign size={20} className="text-emerald-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl p-4 border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Items Ordered</p>
-              <p className="text-2xl font-bold text-amber-600 mt-1">
-                {dashboardStats?.today.items ?? 0}
-              </p>
-            </div>
-            <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
-              <Package size={20} className="text-amber-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-xl p-4 border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 font-medium">Action Required</p>
-              <p className="text-2xl font-bold text-rose-600 mt-1">
-                {filteredOrders.length}
-              </p>
-              <p className="text-[10px] text-gray-400 mt-1">Pending processing</p>
-            </div>
-            <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
-              <Clock size={20} className="text-rose-600" />
+              <History size={20} className="text-blue-600" />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filters and Search */}
+      {/* Search */}
       <div className="flex flex-col lg:flex-row gap-4">
         <div className="flex-1 relative">
           <Search
@@ -225,35 +164,11 @@ export default function PendingOrdersPage() {
           />
           <input
             type="text"
-            placeholder="Search pending orders..."
+            placeholder="Search cancelled orders..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {[
-            "all",
-            "pending",
-            "confirmed",
-            "processing",
-            "shipped",
-          ].map((status) => (
-            <button
-              key={status}
-              onClick={() => {
-                setStatusFilter(status);
-                setCurrentPage(1);
-              }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-                statusFilter === status
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
-              }`}
-            >
-              {status}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -261,8 +176,8 @@ export default function PendingOrdersPage() {
       <div className="rounded-xl border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Package size={20} className="text-blue-600" />
-            Active Order List ({filteredOrders.length})
+            <XCircle size={20} className="text-red-600" />
+            Cancelled Orders List ({filteredOrders.length})
           </h2>
         </div>
 
@@ -271,7 +186,7 @@ export default function PendingOrdersPage() {
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Package size={24} className="text-gray-400" />
             </div>
-            <p className="text-gray-500">No pending orders found</p>
+            <p className="text-gray-500">No cancelled orders found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -336,36 +251,9 @@ export default function PendingOrdersPage() {
                       </div>
                     </td>
                     <td className="py-3 px-6">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                            order.payment?.status === "paid"
-                              ? "bg-green-100 text-green-700 ring-1 ring-green-200"
-                              : order.payment?.status === "pending"
-                                ? "bg-yellow-100 text-yellow-700 ring-1 ring-yellow-200"
-                                : "bg-red-100 text-red-700 ring-1 ring-red-200"
-                          }`}
-                        >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              order.payment?.status === "paid"
-                                ? "bg-green-500"
-                                : order.payment?.status === "pending"
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                            }`}
-                          />
-                          {order.payment?.status ?? "N/A"}
-                        </span>
-                        {order.payment?.method && (
-                          <>
-                            <span className="w-2 h-2 rounded-full bg-gray-300" />
-                            <span className="text-xs text-gray-500 capitalize">
-                              {order.payment.method}
-                            </span>
-                          </>
-                        )}
-                      </div>
+                      <span className="text-sm text-gray-600">
+                        {order.payment?.method?.toUpperCase() ?? "N/A"}
+                      </span>
                     </td>
                     <td className="py-3 px-6">
                       <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -377,17 +265,6 @@ export default function PendingOrdersPage() {
                       <div className="flex items-center gap-2">
                         <InvoiceView order={order} />
                         <InvoicePDF order={order} />
-                        {order.payment?.status === "pending" &&
-                          order.payment?.method === "cod" && (
-                            <button
-                              onClick={() => handleConfirmPayment(order.id)}
-                              disabled={confirmingPayment === order.id}
-                              className="p-2 bg-pink-100 text-pink-600 hover:bg-pink-200 rounded-lg transition-colors disabled:opacity-50"
-                              title="Confirm Payment"
-                            >
-                              <CreditCard size={16} />
-                            </button>
-                          )}
                         <select
                           value={order.status.toLowerCase()}
                           onChange={(e) =>
@@ -396,11 +273,8 @@ export default function PendingOrdersPage() {
                           disabled={updatingStatus === order.id}
                           className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         >
-                          <option value="pending">Pending</option>
-                          <option value="confirmed">Confirmed</option>
-                          <option value="processing">Processing</option>
-                          <option value="shipped">Shipped</option>
-                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="pending">Restore to Pending</option>
                         </select>
                       </div>
                     </td>

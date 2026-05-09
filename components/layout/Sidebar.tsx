@@ -27,6 +27,7 @@ import {
   UserCheck,
   Truck,
   CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
@@ -105,6 +106,14 @@ const orderSubItems = [
     description: "Completed shipments",
     color: "text-green-500",
     bg: "bg-green-50",
+  },
+  {
+    name: "Cancelled",
+    href: "/dashboard/cancel-orders",
+    icon: XCircle,
+    description: "Invalidated orders",
+    color: "text-red-500",
+    bg: "bg-red-50",
   },
 ];
 
@@ -498,7 +507,7 @@ export default function Sidebar() {
                     )}
                   </button>
                   <div
-                    className={`overflow-hidden transition-all duration-300 ease-in-out ${ordersOpen && showText ? "max-h-40 opacity-100" : "max-h-0 opacity-0"}`}
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${ordersOpen && showText ? "max-h-60 opacity-100" : "max-h-0 opacity-0"}`}
                   >
                     <div className="mt-0.5 mb-1 space-y-0.5">
                       {orderSubItems.map((sub) => {
