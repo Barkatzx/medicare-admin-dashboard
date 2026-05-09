@@ -148,7 +148,7 @@ export default function TrendingProductsPage() {
                 <Star className="w-4 h-4 text-yellow-600 fill-yellow-600" />
               </div>
               <h2 className="text-lg font-semibold text-gray-900">
-                Trending Collection
+                Trending Products
               </h2>
               {loading && (
                 <div className="flex items-center gap-2 text-sm text-yellow-600 ml-auto">
