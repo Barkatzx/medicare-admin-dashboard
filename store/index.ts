@@ -9,6 +9,7 @@ import salesReducer from "./slices/salesSlice";
 import dashboardReducer from "./slices/dashboardSlice";
 import notificationReducer from "./slices/notificationSlice";
 import trendingReducer from "./slices/trendingSlice";
+import featuredReducer from "./slices/featuredSlice";
 
 export const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ export const store = configureStore({
     dashboard: dashboardReducer,
     notifications: notificationReducer,
     trending: trendingReducer,
+    featured: featuredReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

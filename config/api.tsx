@@ -671,6 +671,35 @@ class API {
     return [];
   }
 
+  // ==================== FEATURED PRODUCTS MANAGEMENT ====================
+
+  async getFeaturedProducts(): Promise<Product[]> {
+    try {
+      const response = await this.request('/products/featured');
+      
+      if (Array.isArray(response)) {
+        return response;
+      }
+      
+      if (response && response.products && Array.isArray(response.products)) {
+        return response.products;
+      }
+
+      console.warn("Unexpected response structure from featured products:", response);
+      return [];
+    } catch (error) {
+      console.error("Error in getFeaturedProducts:", error);
+      throw error;
+    }
+  }
+
+  async updateProductFeaturedStatus(productId: string, featured: boolean): Promise<Product> {
+    return this.request(`/products/${productId}/featured`, {
+      method: "PATCH",
+      body: JSON.stringify({ featured }),
+    });
+  }
+
   // ==================== TRENDING PRODUCTS MANAGEMENT ====================
 
   async getTrendingProducts(): Promise<Product[]> {

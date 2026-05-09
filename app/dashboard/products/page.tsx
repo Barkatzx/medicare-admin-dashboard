@@ -19,8 +19,10 @@ import {
   X,
   Pencil,
   Star,
+  Heart,
 } from "lucide-react";
 import { updateTrendingStatus, fetchTrendingProducts } from "@/store/slices/trendingSlice";
+import { updateFeaturedStatus, fetchFeaturedProducts } from "@/store/slices/featuredSlice";
 import Modal from "@/components/ui/Modal";
 import toast from "react-hot-toast";
 import ProductForm from "../../../components/products/ProductForm";
@@ -34,6 +36,7 @@ export default function ProductsPage() {
   );
   const { categories } = useAppSelector((state) => state.categories);
   const { trendingProducts } = useAppSelector((state) => state.trending);
+  const { featuredProducts } = useAppSelector((state) => state.featured);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -60,6 +63,7 @@ export default function ProductsPage() {
   useEffect(() => {
     dispatch(fetchCategories());
     dispatch(fetchTrendingProducts() as any);
+    dispatch(fetchFeaturedProducts() as any);
   }, [dispatch]);
 
   useEffect(() => {
@@ -152,6 +156,12 @@ export default function ProductsPage() {
       value: trendingProducts.length,
       icon: Star,
       color: "from-yellow-400 to-yellow-600",
+    },
+    {
+      label: "Featured",
+      value: featuredProducts.length,
+      icon: Heart,
+      color: "from-pink-500 to-rose-600",
     },
   ];
 
@@ -430,6 +440,24 @@ export default function ProductsPage() {
 
                         <td className="py-3 px-6">
                           <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await dispatch(updateFeaturedStatus({ productId: product.id, featured: !product.featured }) as any);
+                                  loadProducts();
+                                } catch (error) {
+                                  console.error(error);
+                                }
+                              }}
+                              className={`p-2 rounded-lg transition-colors ${
+                                product.featured
+                                  ? "text-pink-600 bg-pink-100 hover:bg-pink-200"
+                                  : "text-gray-400 bg-gray-100 hover:bg-gray-200"
+                              }`}
+                              title={product.featured ? "Remove from Featured" : "Add to Featured"}
+                            >
+                              <Heart size={16} className={product.featured ? "fill-current" : ""} />
+                            </button>
                             <button
                               onClick={async () => {
                                 try {
