@@ -181,12 +181,6 @@ const customerRoutes: ApiEndpoint[] = [
   },
   {
     method: "GET",
-    endpoint: "/products/on-sale",
-    description: "Get products on sale",
-    auth: "public",
-  },
-  {
-    method: "GET",
     endpoint: "/products/search",
     description: "Search products",
     auth: "public",
@@ -195,6 +189,24 @@ const customerRoutes: ApiEndpoint[] = [
     method: "GET",
     endpoint: "/products/:id",
     description: "Get product by ID",
+    auth: "public",
+  },
+  {
+    method: "GET",
+    endpoint: "/products/trending",
+    description: "Get trending products",
+    auth: "public",
+  },
+  {
+    method: "GET",
+    endpoint: "/products/featured",
+    description: "Get featured products",
+    auth: "public",
+  },
+  {
+    method: "GET",
+    endpoint: "/products/new",
+    description: "Get new products",
     auth: "public",
   },
   // Categories (Public)
@@ -310,6 +322,18 @@ const adminRoutes: ApiEndpoint[] = [
     method: "PATCH",
     endpoint: "/products/:id/stock",
     description: "Update product stock",
+    auth: "admin",
+  },
+  {
+    method: "PATCH",
+    endpoint: "/products/{{productId}}/trending",
+    description: "Update product trending status",
+    auth: "admin",
+  },
+  {
+    method: "PATCH",
+    endpoint: "/products/{{productId}}/featured",
+    description: "Update product featured status",
     auth: "admin",
   },
   // Category Management
