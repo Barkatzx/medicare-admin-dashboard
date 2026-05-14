@@ -1,6 +1,6 @@
 // services/api.ts - Full updated file
 
-const API_BASE_URL = "https://api.barkatulla.com/v1";
+const API_BASE_URL = "https://medicare-server-9je0.onrender.com/v1";
 
 export interface User {
   id: string;
@@ -675,17 +675,20 @@ class API {
 
   async getFeaturedProducts(): Promise<Product[]> {
     try {
-      const response = await this.request('/products/featured');
-      
+      const response = await this.request("/products/featured");
+
       if (Array.isArray(response)) {
         return response;
       }
-      
+
       if (response && response.products && Array.isArray(response.products)) {
         return response.products;
       }
 
-      console.warn("Unexpected response structure from featured products:", response);
+      console.warn(
+        "Unexpected response structure from featured products:",
+        response,
+      );
       return [];
     } catch (error) {
       console.error("Error in getFeaturedProducts:", error);
@@ -693,7 +696,10 @@ class API {
     }
   }
 
-  async updateProductFeaturedStatus(productId: string, featured: boolean): Promise<Product> {
+  async updateProductFeaturedStatus(
+    productId: string,
+    featured: boolean,
+  ): Promise<Product> {
     return this.request(`/products/${productId}/featured`, {
       method: "PATCH",
       body: JSON.stringify({ featured }),
@@ -705,19 +711,22 @@ class API {
   async getTrendingProducts(): Promise<Product[]> {
     try {
       // Use this.request to automatically handle response format parsing
-      const response = await this.request('/products/trending');
-      
+      const response = await this.request("/products/trending");
+
       // If the response is already the array of products (handled by this.request logic)
       if (Array.isArray(response)) {
         return response;
       }
-      
+
       // If it returned the raw data for some reason
       if (response && response.products && Array.isArray(response.products)) {
         return response.products;
       }
 
-      console.warn("Unexpected response structure from trending products:", response);
+      console.warn(
+        "Unexpected response structure from trending products:",
+        response,
+      );
       return [];
     } catch (error) {
       console.error("Error in getTrendingProducts:", error);
@@ -725,7 +734,10 @@ class API {
     }
   }
 
-  async updateProductTrendingStatus(productId: string, trending: boolean): Promise<Product> {
+  async updateProductTrendingStatus(
+    productId: string,
+    trending: boolean,
+  ): Promise<Product> {
     // Only send the 'trending' boolean since 'trendingOrder' is no longer required
     return this.request(`/products/${productId}/trending`, {
       method: "PATCH",
