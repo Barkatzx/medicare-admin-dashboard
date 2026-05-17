@@ -176,6 +176,8 @@ export default function Sidebar() {
   const router = useRouter();
   const { user } = useAppSelector((state) => state.auth);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingOrdersCount, setPendingOrdersCount] = useState(0);
+  const [pendingCustomersCount, setPendingCustomersCount] = useState(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -223,6 +225,50 @@ export default function Sidebar() {
         "notificationsUpdated",
         handleNotificationUpdate,
       );
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchPendingOrdersCount = async () => {
+      try {
+        const data = await api.getAllOrders(1, 1, "pending");
+        const count = data?.pagination?.total || data?.orders?.length || 0;
+        setPendingOrdersCount(count);
+      } catch (error) {
+        console.error("Failed to fetch pending orders count:", error);
+      }
+    };
+
+    fetchPendingOrdersCount();
+    const interval = setInterval(fetchPendingOrdersCount, 30000);
+    const handleOrderUpdate = () => fetchPendingOrdersCount();
+    window.addEventListener("ordersUpdated", handleOrderUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("ordersUpdated", handleOrderUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchPendingCustomersCount = async () => {
+      try {
+        const users = await api.getUsers();
+        const count = users.filter((u: any) => !u.isApproved && u.role !== "admin").length;
+        setPendingCustomersCount(count);
+      } catch (error) {
+        console.error("Failed to fetch pending customers count:", error);
+      }
+    };
+
+    fetchPendingCustomersCount();
+    const interval = setInterval(fetchPendingCustomersCount, 30000);
+    const handleUsersUpdate = () => fetchPendingCustomersCount();
+    window.addEventListener("usersUpdated", handleUsersUpdate);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("usersUpdated", handleUsersUpdate);
     };
   }, []);
 
@@ -348,6 +394,11 @@ export default function Sidebar() {
                         <span className="text-sm font-medium whitespace-nowrap flex-1 text-left">
                           Customers
                         </span>
+                        {pendingCustomersCount > 0 && !usersOpen && (
+                          <span className="bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full mr-2">
+                            {pendingCustomersCount}
+                          </span>
+                        )}
                         <span
                           className={`transition-transform duration-300 ${usersOpen ? "rotate-90" : "rotate-0"}`}
                         >
@@ -390,6 +441,11 @@ export default function Sidebar() {
                             <span className="text-sm font-medium whitespace-nowrap">
                               {sub.name}
                             </span>
+                            {sub.name === "Pending" && pendingCustomersCount > 0 && (
+                              <span className="ml-auto bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                {pendingCustomersCount}
+                              </span>
+                            )}
                           </Link>
                         );
                       })}
@@ -481,15 +537,22 @@ export default function Sidebar() {
                       ${ordersActive ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700" : "text-gray-600 hover:bg-gray-50 hover:text-blue-600"}
                     `}
                   >
-                    <ShoppingBag
-                      size={20}
-                      className={`flex-shrink-0 transition-all duration-200 ${ordersActive ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"}`}
-                    />
+                    <div className="relative flex-shrink-0">
+                      <ShoppingBag
+                        size={20}
+                        className={`transition-all duration-200 ${ordersActive ? "text-blue-600" : "text-gray-500 group-hover:text-blue-600 group-hover:scale-105"}`}
+                      />
+                    </div>
                     {showText && (
                       <>
                         <span className="text-sm font-medium whitespace-nowrap flex-1 text-left">
                           Orders
                         </span>
+                        {pendingOrdersCount > 0 && !ordersOpen && (
+                          <span className="bg-red-100 text-red-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full mr-2">
+                            {pendingOrdersCount}
+                          </span>
+                        )}
                         <span
                           className={`transition-transform duration-300 ${ordersOpen ? "rotate-90" : "rotate-0"}`}
                         >
@@ -532,6 +595,11 @@ export default function Sidebar() {
                             <span className="text-sm font-medium whitespace-nowrap">
                               {sub.name}
                             </span>
+                            {sub.name === "Pending" && pendingOrdersCount > 0 && (
+                              <span className="ml-auto bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">
+                                {pendingOrdersCount}
+                              </span>
+                            )}
                           </Link>
                         );
                       })}

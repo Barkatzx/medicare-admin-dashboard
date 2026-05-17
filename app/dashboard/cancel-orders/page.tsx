@@ -265,17 +265,6 @@ export default function CancelOrdersPage() {
                       <div className="flex items-center gap-2">
                         <InvoiceView order={order} />
                         <InvoicePDF order={order} />
-                        <select
-                          value={order.status.toLowerCase()}
-                          onChange={(e) =>
-                            handleStatusUpdate(order.id, e.target.value)
-                          }
-                          disabled={updatingStatus === order.id}
-                          className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                        >
-                          <option value="cancelled">Cancelled</option>
-                          <option value="pending">Restore to Pending</option>
-                        </select>
                       </div>
                     </td>
                   </tr>

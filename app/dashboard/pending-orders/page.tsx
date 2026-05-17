@@ -68,6 +68,7 @@ export default function PendingOrdersPage() {
       ).unwrap();
       toast.success(`Order status updated to ${newStatus}`);
       fetchStats(); // Refresh stats after update
+      window.dispatchEvent(new Event("ordersUpdated"));
     } catch {
       toast.error("Failed to update order status");
     } finally {
@@ -81,6 +82,7 @@ export default function PendingOrdersPage() {
       await dispatch(confirmPayment(orderId)).unwrap();
       toast.success("Payment confirmed successfully");
       fetchStats();
+      window.dispatchEvent(new Event("ordersUpdated"));
     } catch {
       toast.error("Failed to confirm payment");
     } finally {
@@ -401,6 +403,7 @@ export default function PendingOrdersPage() {
                           <option value="processing">Processing</option>
                           <option value="shipped">Shipped</option>
                           <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
                         </select>
                       </div>
                     </td>

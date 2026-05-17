@@ -38,6 +38,7 @@ export default function PendingUsersPage() {
     setApprovingId(userId);
     await dispatch(approveUser(userId));
     setApprovingId(null);
+    window.dispatchEvent(new Event("usersUpdated"));
   };
 
   const handleDeleteClick = (user: any) => {
@@ -52,6 +53,7 @@ export default function PendingUsersPage() {
       await dispatch(deleteUser(userToDelete.id)).unwrap();
       setIsDeleteModalOpen(false);
       setUserToDelete(null);
+      window.dispatchEvent(new Event("usersUpdated"));
     } catch (error: any) {
       // Error handled by slice
     } finally {
