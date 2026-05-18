@@ -1,6 +1,6 @@
 // services/api.ts - Full updated file
 
-const API_BASE_URL = "https://medicare-server-9je0.onrender.com/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export interface User {
   id: string;
